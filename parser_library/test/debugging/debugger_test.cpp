@@ -380,9 +380,8 @@ void step_into(debugger& d,
     m.wait_for_stopped();
 }
 
-void erase_frames_from_top(size_t number_of_frames,
-    std::vector<expected_stack_frame>& exp_stack_frames,
-    std::vector<frame_vars>& exp_frame_vars)
+void erase_frames_from_top(
+    int number_of_frames, std::vector<expected_stack_frame>& exp_stack_frames, std::vector<frame_vars>& exp_frame_vars)
 {
     exp_stack_frames.erase(exp_stack_frames.begin(), exp_stack_frames.begin() + number_of_frames);
     exp_frame_vars.erase(exp_frame_vars.begin(), exp_frame_vars.begin() + number_of_frames);

@@ -641,8 +641,8 @@ void lsp_analyzer::collect_branch_info(
         const auto& [target, condition] = *transfer;
         const auto& ops = rs->operands_ref().value;
 
-        if (condition >= 0 && condition < ops.size()
-            && symbol_value_zerolike(*ops[condition], hlasm_ctx_.ord_ctx, dep_ctx, li))
+        if (condition >= 0 && utils::to_unsigned(condition) < ops.size()
+            && symbol_value_zerolike(*ops[utils::to_unsigned(condition)], hlasm_ctx_.ord_ctx, dep_ctx, li))
             continue;
 
         if (!dep_ctx.loctr_address || !dep_ctx.loctr_address->is_simple())
@@ -654,9 +654,9 @@ void lsp_analyzer::collect_branch_info(
 
         auto& ld = line_details(range(pos), ci);
         bool branch_somewhere = true;
-        if (target >= 0 && target < ops.size())
+        if (target >= 0 && utils::to_unsigned(target) < ops.size())
         {
-            const auto symbol_pos = extract_symbol_position(*ops[target], hlasm_ctx_.ord_ctx);
+            const auto symbol_pos = extract_symbol_position(*ops[utils::to_unsigned(target)], hlasm_ctx_.ord_ctx);
             if (symbol_pos.has_value())
             {
                 branch_somewhere = false;

@@ -19,6 +19,7 @@
 #include "document_symbol_item.h"
 #include "fade_messages.h"
 #include "parsing/parser_impl.h"
+#include "utils/intconv.h"
 #include "utils/similar.h"
 #include "utils/task.h"
 #include "workspace_manager.h"
@@ -191,7 +192,7 @@ std::optional<std::vector<T>> get_var_vector(hlasm_context& ctx, std::string nam
     {
         if (std::cmp_not_equal(i, keys[i - 1]))
             return std::nullopt;
-        result.push_back(symbol->get_value(i));
+        result.push_back(symbol->get_value(hlasm_plugin::utils::to_signed(i)));
     }
 
     return result;

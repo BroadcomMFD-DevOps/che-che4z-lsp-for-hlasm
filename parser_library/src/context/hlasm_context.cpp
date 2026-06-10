@@ -32,6 +32,7 @@
 #include "ordinary_assembly/location_counter.h"
 #include "using.h"
 #include "utils/factory.h"
+#include "utils/intconv.h"
 #include "utils/projectors.h"
 #include "utils/string_operations.h"
 #include "utils/time.h"
@@ -220,14 +221,15 @@ void hlasm_context::add_global_system_variables(system_variable_map& sysvars)
         id_index("SYSM_HSEV"), create_dynamic_var([this]() { return std::format("{:03}", mnote_max); }), true));
 }
 
-void hlasm_context::add_scoped_system_variables(system_variable_map& sysvars, size_t skip_last, bool globals_only)
+void hlasm_context::add_scoped_system_variables(
+    system_variable_map& sysvars, std::ptrdiff_t skip_last, bool globals_only)
 {
     struct view_t
     {
         hlasm_context& ctx;
-        size_t skip;
+        std::ptrdiff_t skip;
 
-        auto size() const noexcept { return ctx.scope_stack_.size() - skip; }
+        auto size() const noexcept { return ctx.scope_stack_.size() - utils::to_unsigned(skip); }
         auto rbegin() const noexcept { return ctx.scope_stack_.rbegin() + skip; }
         auto rend() const noexcept { return ctx.scope_stack_.rend(); }
         const auto& top() const noexcept { return *rbegin(); }
@@ -318,10 +320,10 @@ void hlasm_context::add_scoped_system_variables(system_variable_map& sysvars, si
         // gets value of the idx-th value, when exceeds size of data, returns default value
         const macro_param_data_component* get_ith(A_t idx) const override
         {
-            if (idx < 0 || idx >= view.size())
+            if (idx < 0 || utils::to_unsigned(idx) >= view.size())
                 return dummy.get();
 
-            return view.dyn_ptrs()[view.size() - 1 - idx].get();
+            return view.dyn_ptrs()[view.size() - 1 - utils::to_unsigned(idx)].get();
         }
 
         std::optional<std::pair<A_t, A_t>> index_range() const override

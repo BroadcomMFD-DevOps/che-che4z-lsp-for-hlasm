@@ -20,8 +20,15 @@
 
 namespace hlasm_plugin::utils {
 
-auto to_signed(std::integral auto v) { return static_cast<std::make_signed_t<decltype(v)>>(v); }
-auto to_unsigned(std::integral auto v) { return static_cast<std::make_unsigned_t<decltype(v)>>(v); }
+[[nodiscard]] constexpr auto to_signed(std::integral auto v) noexcept
+{
+    return static_cast<std::make_signed_t<decltype(v)>>(v);
+}
+
+[[nodiscard]] constexpr auto to_unsigned(std::integral auto v) noexcept
+{
+    return static_cast<std::make_unsigned_t<decltype(v)>>(v);
+}
 
 } // namespace hlasm_plugin::utils
 

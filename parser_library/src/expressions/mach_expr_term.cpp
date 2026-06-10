@@ -56,7 +56,7 @@ const mach_expression* mach_expr_constant::leftmost_term() const { return this; 
 
 void mach_expr_constant::apply(mach_expr_visitor& visitor) const { visitor.visit(*this); }
 
-size_t mach_expr_constant::hash() const { return hash_combine((size_t)0x38402610af574281, value_); }
+size_t mach_expr_constant::hash() const { return hash_combine((size_t)0x38402610af574281, utils::to_unsigned(value_)); }
 
 mach_expr_ptr mach_expr_constant::clone() const { return std::make_unique<mach_expr_constant>(value_, get_range()); }
 
@@ -277,7 +277,7 @@ mach_expression::value_t mach_expr_data_attr::evaluate(
     {
         auto result = solver.get_opcode_attr(value);
         assert(result.size() == 1);
-        return ebcdic_encoding::to_ebcdic(result.front());
+        return ebcdic_encoding::to_ebcdic(static_cast<unsigned char>(result.front()));
     }
 
     const context::symbol* symbol = nullptr;
@@ -315,7 +315,7 @@ mach_expression::value_t mach_expr_data_attr::equ_evaluate(context::dependency_s
     {
         auto result = solver.get_opcode_attr(value);
         assert(result.size() == 1);
-        return ebcdic_encoding::to_ebcdic(result.front());
+        return ebcdic_encoding::to_ebcdic(static_cast<unsigned char>(result.front()));
     }
 
     const context::symbol* symbol = nullptr;

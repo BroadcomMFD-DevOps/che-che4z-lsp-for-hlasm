@@ -291,8 +291,8 @@ bool operands_relevant_in_lookahead(bool has_label, const processing_status& sta
     const auto form = status.first.form;
     const auto& instr = status.second.value;
 
-    return form == ASM_GENERIC_TEXT && instr == COPY || form == ASM_GENERIC_ORD && instr == EQU && has_label
-        || form == DAT && has_label;
+    return (form == ASM_GENERIC_TEXT && instr == COPY) || (form == ASM_GENERIC_ORD && instr == EQU && has_label)
+        || (form == DAT && has_label);
 }
 } // namespace
 

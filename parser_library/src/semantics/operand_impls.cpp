@@ -81,9 +81,9 @@ bool machine_operand::has_dependencies(
 
 bool machine_operand::has_error(context::dependency_solver& info) const
 {
-    return displacement && displacement->get_dependencies(info).has_error
-        || first_par && first_par->get_dependencies(info).has_error
-        || second_par && second_par->get_dependencies(info).has_error;
+    return (displacement && displacement->get_dependencies(info).has_error)
+        || (first_par && first_par->get_dependencies(info).has_error)
+        || (second_par && second_par->get_dependencies(info).has_error);
 }
 
 void machine_operand::apply(operand_visitor& visitor) const { visitor.visit(*this); }

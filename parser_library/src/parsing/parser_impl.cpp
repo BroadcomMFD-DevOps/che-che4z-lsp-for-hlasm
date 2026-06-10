@@ -117,7 +117,7 @@ std::pair<char_substitution, size_t> append_utf8_with_newlines(
     size_t utf16_length = 0;
     while (!s.empty())
     {
-        char8_t c = s.front();
+        const auto c = static_cast<char8_t>(s.front());
         if (c < 0x80)
         {
             t.push_back(c);
@@ -139,8 +139,8 @@ std::pair<char_substitution, size_t> append_utf8_with_newlines(
             char32_t v = c & 0b0111'1111u >> cs.utf8;
             for (int i = 1; i < cs.utf8; ++i)
             {
-                const char8_t n = s[i] & 0b0011'1111u;
-                t.push_back(0x80u | n);
+                const auto n = static_cast<unsigned char>(s[i]) & 0b0011'1111u;
+                t.push_back(static_cast<char8_t>(0x80u | n));
                 v = v << 6 | n;
             }
 
@@ -858,7 +858,7 @@ void parser2::consume_into(std::string& s)
 
     do
     {
-        s.push_back(*input.next);
+        s.push_back(static_cast<char>(*input.next));
         ++input.next;
     } while ((*input.next & 0xC0) == 0x80);
 
@@ -1624,7 +1624,7 @@ result_t<expressions::ca_expr_ptr> parser2::lex_attribute_reference()
     assert((follows<all_attrs, group<u8'\''>>()));
     const auto start = cur_pos_adjusted();
 
-    const auto attr = context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
+    const auto attr = context::symbol_attributes::transform_attr(utils::to_unsigned(utils::upper_cased[*input.next]));
     consume(hl_scopes::data_attr_type);
     consume(hl_scopes::operator_symbol);
 
@@ -1947,7 +1947,8 @@ result_t<expressions::mach_expr_ptr> parser2::lex_mach_term()
             }
             if (follows<mach_attrs, group<u8'\''>>())
             {
-                const auto attr = context::symbol_attributes::transform_attr(utils::upper_cased[*input.next]);
+                const auto attr =
+                    context::symbol_attributes::transform_attr(utils::to_unsigned(utils::upper_cased[*input.next]));
                 consume(hl_scopes::data_attr_type);
                 consume(hl_scopes::operator_symbol);
                 const auto start_value = cur_pos_adjusted();
@@ -2282,7 +2283,8 @@ result_t<expressions::data_definition> parser2::lex_data_def_base()
 
     // read_exponent
     using can_have_exponent = decltype(group_from_string<{ u8"DEFHLdefhl" }>());
-    if (can_have_exponent::matches(result.type) && try_consume<u8'E', u8'e'>(hl_scopes::data_def_modifier))
+    if (can_have_exponent::matches(utils::to_unsigned(result.type))
+        && try_consume<u8'E', u8'e'>(hl_scopes::data_def_modifier))
     {
         auto [error, e] = lex_literal_signed_num();
         if (error)
@@ -3122,7 +3124,7 @@ parser_holder::op_data parser2::lab_instr_rest()
     {
         while (!before_nl())
         {
-            result.op_text->text.push_back(lexing::u8string_view_with_newlines::EOL);
+            result.op_text->text.push_back(static_cast<char>(lexing::u8string_view_with_newlines::EOL));
             ++input.line;
             ++input.nl;
             input.char_position_in_line = holder->cont;
@@ -3133,7 +3135,7 @@ parser_holder::op_data parser2::lab_instr_rest()
 
         do
         {
-            result.op_text->text.push_back(*input.next);
+            result.op_text->text.push_back(static_cast<char>(*input.next));
             ++input.next;
         } while ((*input.next & 0xC0) == 0x80);
 
@@ -3143,7 +3145,7 @@ parser_holder::op_data parser2::lab_instr_rest()
 
     while (*input.nl != (size_t)-1)
     {
-        result.op_text->text.push_back(lexing::u8string_view_with_newlines::EOL);
+        result.op_text->text.push_back(static_cast<char>(lexing::u8string_view_with_newlines::EOL));
         ++input.line;
         ++input.nl;
         input.char_position_in_line = holder->cont;
@@ -3406,7 +3408,7 @@ constexpr bool is_ord_like(std::span<const semantics::concatenation_point> cc)
         cc, [](const auto& c) { return !std::get<semantics::char_str_conc>(c.value).value.empty(); });
     if (it == cc.end())
         return false;
-    if (!char_is_ord_first(std::get<semantics::char_str_conc>(it->value).value.front()))
+    if (!char_is_ord_first(static_cast<char8_t>(std::get<semantics::char_str_conc>(it->value).value.front())))
         return false;
     return std::all_of(it, cc.end(), [](const auto& c) {
         const auto& str = std::get<semantics::char_str_conc>(c.value).value;

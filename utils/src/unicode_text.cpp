@@ -23,11 +23,11 @@ constinit const std::array<char_size, 256> utf8_prefix_sizes = []() {
     static_assert(std::numeric_limits<unsigned char>::max() < sizes.size());
     for (unsigned i = 0b0000'0000; i <= 0b0111'1111; ++i)
         sizes[i] = { 1, 1 };
-    for (int i = 0b1100'0000; i <= 0b1101'1111; ++i)
+    for (unsigned i = 0b1100'0000; i <= 0b1101'1111; ++i)
         sizes[i] = { 2, 1 };
-    for (int i = 0b1110'0000; i <= 0b1110'1111; ++i)
+    for (unsigned i = 0b1110'0000; i <= 0b1110'1111; ++i)
         sizes[i] = { 3, 1 };
-    for (int i = 0b1111'0000; i <= 0b1111'0111; ++i)
+    for (unsigned i = 0b1111'0000; i <= 0b1111'0111; ++i)
         sizes[i] = { 4, 2 };
     return sizes;
 }();
@@ -73,7 +73,8 @@ character_replaced append_utf8_sanitized(std::string& result, std::string_view s
 
         const auto c = static_cast<unsigned char>(*it);
         auto cs = utf8_prefix_sizes[c];
-        if (cs.utf8 > 1 && (end - it) >= cs.utf8 && utf8_valid_multibyte_prefix(c, *std::next(it))
+        if (cs.utf8 > 1 && (end - it) >= cs.utf8
+            && utf8_valid_multibyte_prefix(c, static_cast<unsigned char>(*std::next(it)))
             && std::all_of(it + 2, it + cs.utf8, [](char c) { return (c & 0xC0) == 0x80; }))
         {
             char32_t combined = c & ~(0xffu << (8 - cs.utf8));
@@ -178,7 +179,7 @@ std::pair<size_t, size_t> substr_step(std::string_view& s, size_t& chars) noexce
         --chars;
         ++result.first;
 
-        unsigned char c = s.front();
+        const auto c = static_cast<unsigned char>(s.front());
         if (c < 0x80)
         {
             ++result.second;

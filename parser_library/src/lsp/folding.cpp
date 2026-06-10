@@ -235,12 +235,12 @@ void adjust_folding_data(std::span<fold_data> data)
         auto newlimit = s - structured.begin();
         auto oldend = d.notcomment;
 
-        d.notcomment = newlimit - 1;
+        d.notcomment = utils::to_unsigned(newlimit - 1);
 
         if (se == reach)
             continue;
 
-        auto& nextd = data[se - structured.begin()];
+        auto& nextd = data[utils::to_unsigned(se - structured.begin())];
         nextd.notcomment = std::max(nextd.notcomment, oldend);
     }
 }

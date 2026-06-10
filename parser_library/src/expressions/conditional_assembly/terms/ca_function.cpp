@@ -439,12 +439,12 @@ context::SET_t ca_function::B2C(const context::C_t& param, diagnostic_adder& add
         auto c = 0u;
         for (size_t j = 0; j < 8; ++j)
         {
-            const auto bit = new_str[i * 8 + j] - '0';
+            const auto bit = utils::to_unsigned(new_str[i * 8 + j] - '0');
             if (bit != 0 && bit != 1)
                 RET_ERRPARM;
             c = (c << 1) | bit;
         }
-        ret.append(ebcdic_encoding::to_ascii(static_cast<char>(c)));
+        ret.append(ebcdic_encoding::to_ascii(static_cast<unsigned char>(c)));
     }
 
     return ret;
@@ -482,7 +482,7 @@ context::SET_t ca_function::B2X(const context::C_t& param, diagnostic_adder& add
         auto c = 0u;
         for (size_t j = 0; j < 4; ++j)
         {
-            const auto bit = new_str[i * 4 + j] - '0';
+            const auto bit = utils::to_unsigned(new_str[i * 4 + j] - '0');
             if (bit != 0 && bit != 1)
                 RET_ERRPARM;
             c = (c << 1) | bit;
