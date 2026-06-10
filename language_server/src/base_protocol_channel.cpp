@@ -122,7 +122,8 @@ bool base_protocol_channel::read_message(std::string& out)
     out.resize(content_length);
     for (std::size_t pos = 0; pos < content_length;)
     {
-        input.read(&out[pos], content_length - pos);
+        static_assert(message_size_limit < std::numeric_limits<std::streamsize>::max());
+        input.read(&out[pos], utils::to_signed(content_length - pos));
         std::streamsize read = input.gcount();
         if (read <= 0)
         {
