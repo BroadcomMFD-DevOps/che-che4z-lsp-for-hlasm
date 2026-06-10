@@ -141,9 +141,12 @@ std::vector<bool> file_info::macro_map() const
         return {};
     static constexpr auto line_end = [](const auto& s) { return s.file_lines.end; };
     std::vector<bool> result(std::ranges::max(slices | std::views::transform(line_end)));
+    using diff = decltype(result)::difference_type;
     for (const auto& scope : slices)
     {
-        std::fill(result.begin() + scope.file_lines.begin, result.begin() + scope.file_lines.end, true);
+        const auto b = result.begin() + static_cast<diff>(scope.file_lines.begin);
+        const auto e = result.begin() + static_cast<diff>(scope.file_lines.end);
+        std::fill(b, e, true);
     }
     return result;
 }
