@@ -207,8 +207,7 @@ void folding_between_comments(std::vector<fold_data>& data, std::span<const line
 
 void adjust_folding_data(std::span<fold_data> data)
 {
-    static_assert(std::numeric_limits<decltype(data)::difference_type>::max()
-        <= std::numeric_limits<std::vector<bool>::difference_type>::max());
+    // fold_data.<something> are < data.size()
     std::vector<bool> structured(data.size());
     for (size_t l = 0; l < data.size(); ++l)
     {

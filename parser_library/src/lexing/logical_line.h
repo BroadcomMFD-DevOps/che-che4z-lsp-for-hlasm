@@ -77,7 +77,7 @@ struct logical_line_segment
 };
 
 template<typename It>
-size_t logical_distance(It b, It e)
+size_t logical_distance(It b, It e) // always assumes "b <= e"
 {
     return utils::to_unsigned(std::ranges::distance(b, e));
 }

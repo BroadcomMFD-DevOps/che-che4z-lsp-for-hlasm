@@ -477,7 +477,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
         }
         else
         {
-            // TODO: get_operands_length always returns non-negative value
+            // TODO: get_operands_length always returns non-negative value, but as int32_t
             auto length = data_def_dependency<instr_type>::get_operands_length(b, e, op_solver, drop_diagnostic_op);
             hlasm_ctx.ord_ctx.reserve_storage_area(utils::to_unsigned(length), context::no_align);
         }

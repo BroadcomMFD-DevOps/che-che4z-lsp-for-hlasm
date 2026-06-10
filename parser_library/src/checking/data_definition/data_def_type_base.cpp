@@ -138,7 +138,7 @@ size_t data_def_type::get_number_of_values_in_nominal(const reduced_nominal_valu
     if (type() == data_definition_type::C || type() == data_definition_type::G)
         return 1; // C and G do not support multiple nominal values
     else if (std::holds_alternative<std::string_view>(nom))
-        return utils::to_unsigned(std::ranges::count(std::get<std::string_view>(nom), ',') + 1);
+        return utils::to_unsigned(std::ranges::count(std::get<std::string_view>(nom), ',')) + 1;
     else if (std::holds_alternative<size_t>(nom))
         return std::get<size_t>(nom);
     else
@@ -184,6 +184,7 @@ uint32_t data_def_type::get_length_attribute(const data_def_length_t& length, co
 {
     if (length.present)
     {
+        // TODO: It not clear that value >= 0
         auto len_attr = utils::to_unsigned(length.value);
         if (length.len_type == data_def_length_t::BIT)
         {
