@@ -15,13 +15,12 @@
 #include "base_protocol_channel.h"
 
 #include <charconv>
-#include <memory>
-#include <sstream>
 #include <string>
 #include <string_view>
 
 #include "logger.h"
 #include "nlohmann/json.hpp"
+#include "utils/intconv.h"
 
 namespace hlasm_plugin::language_server {
 
@@ -45,9 +44,9 @@ void base_protocol_channel::write_message(const std::string& in)
     }
     output.write(content_length_string.data(), content_length_string.size());
     std::string size = std::to_string(in.size());
-    output.write(size.c_str(), size.size());
-    output.write(lsp_header_end.data(), lsp_header_end.size());
-    output.write(in.c_str(), in.size());
+    output.write(size.c_str(), std::ssize(size));
+    output.write(lsp_header_end.data(), std::ssize(lsp_header_end));
+    output.write(in.c_str(), std::ssize(in));
     output.flush();
 }
 
@@ -81,7 +80,7 @@ bool base_protocol_channel::read_message(std::string& out)
 
             auto [end_ptr, ec] = std::from_chars(line_view.data(), line_view.data() + line_view.size(), content_length);
 
-            line_view.remove_prefix(end_ptr - line_view.data());
+            line_view.remove_prefix(utils::to_unsigned(end_ptr - line_view.data()));
 
             if (ec != std::errc {} || line_view != "\r")
             {
@@ -133,7 +132,7 @@ bool base_protocol_channel::read_message(std::string& out)
                 std::to_string(content_length));
             return false;
         }
-        pos += read;
+        pos += utils::to_unsigned(read);
     }
 
     return true;
