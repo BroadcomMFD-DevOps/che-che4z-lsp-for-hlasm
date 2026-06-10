@@ -112,7 +112,7 @@ void apply_text_diff(std::string& text, std::vector<size_t>& lines, range r, std
             lines[i] = lines[i + diff] + char_diff;
         }
 
-        lines.erase(lines.end() - diff, lines.end());
+        lines.resize(lines.size() - diff);
     }
 
 
