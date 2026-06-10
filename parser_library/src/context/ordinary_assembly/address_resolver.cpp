@@ -23,7 +23,7 @@ using namespace hlasm_plugin::parser_library::context;
 
 address_resolver::address_resolver(address dependency_address_, size_t boundary)
     : dependency_address(std::move(dependency_address_))
-    , boundary(boundary)
+    , boundary(boundary + !boundary)
 {}
 
 dependency_collector address_resolver::get_dependencies(dependency_solver&) const
@@ -62,7 +62,7 @@ symbol_value alignable_address_resolver::resolve(dependency_solver&) const { ret
 
 symbol_value alignable_address_resolver::resolve(const address& addr) const
 {
-    auto al = boundary ? (boundary - addr.offset() % boundary) % boundary : 0;
+    auto al = alignment { 0, boundary }.align(static_cast<size_t>(addr.offset()));
     return addr.offset() + (symbol_value::abs_value_t)al + offset;
 }
 
@@ -90,7 +90,7 @@ symbol_value alignable_address_abs_part_resolver::resolve(dependency_solver& sol
 aggregate_address_resolver::aggregate_address_resolver(std::vector<address> base_addrs, size_t boundary, int offset)
     : last_base_addrs(base_addrs.size() - 1)
     , base_addrs(std::move(base_addrs))
-    , boundary(boundary)
+    , boundary(boundary + !boundary)
     , offset(offset)
 {}
 
@@ -107,7 +107,7 @@ symbol_value aggregate_address_resolver::resolve(dependency_solver&) const
         }
     }
 
-    auto al = boundary ? (boundary - base_addrs[idx].offset() % boundary) % boundary : 0;
+    auto al = alignment { 0, boundary }.align(static_cast<size_t>(base_addrs[idx].offset()));
     return base_addrs[idx].offset() + (symbol_value::abs_value_t)al + offset;
 }
 

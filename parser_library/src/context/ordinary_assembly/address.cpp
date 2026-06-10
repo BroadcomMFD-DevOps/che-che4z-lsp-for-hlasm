@@ -55,10 +55,7 @@ void space::resolve(int length, resolve_reason r)
 
     if (kind == space_kind::ALIGNMENT)
     {
-        if (length % align.boundary != align.byte)
-            length = (int)((align.boundary - (length % align.boundary)) + align.byte) % align.boundary;
-        else
-            length = 0;
+        length = static_cast<int>(align.align(static_cast<size_t>(length)));
     }
 
     resolved_length = length;
