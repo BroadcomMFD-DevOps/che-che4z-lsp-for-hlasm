@@ -477,8 +477,9 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
         }
         else
         {
+            // TODO: get_operands_length always returns non-negative value
             auto length = data_def_dependency<instr_type>::get_operands_length(b, e, op_solver, drop_diagnostic_op);
-            hlasm_ctx.ord_ctx.reserve_storage_area(length, context::no_align);
+            hlasm_ctx.ord_ctx.reserve_storage_area(utils::to_unsigned(length), context::no_align);
         }
     }
 
@@ -1002,7 +1003,10 @@ void asm_processor::process_START(rebuilt_statement&& stmt)
     size_t start_section_alignment = hlasm_ctx.section_alignment().boundary;
     size_t start_section_alignment_mask = start_section_alignment - 1;
 
-    uint32_t offset = initial_offset.value();
+    // TODO: This actually seems to be GOFF dependent,
+    // limit of 16M or 2G seems to be imposed in addition to the alignment
+    // sometimes with error diagnostic
+    auto offset = utils::to_unsigned(initial_offset.value());
     if (offset & start_section_alignment_mask)
     {
         // TODO: generate informational message?

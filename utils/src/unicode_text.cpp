@@ -35,7 +35,7 @@ constinit const std::array<char_size, 256> utf8_prefix_sizes = []() {
 constinit const std::array<unsigned char, 128> utf8_valid_multibyte_prefix_table = []() {
     std::array<unsigned char, 128> result {};
     const auto update = [&result](unsigned char f, unsigned char s) {
-        int bitid = (f - 0xC0) << 4 | s >> 4;
+        unsigned bitid = (f - 0xC0u) << 4 | s >> 4;
         result[bitid / 8] |= (0x80 >> bitid % 8);
     };
     const auto update_range = [update](unsigned char fl, unsigned char fh, unsigned char sl, unsigned char sh) {
@@ -190,7 +190,8 @@ std::pair<size_t, size_t> substr_step(std::string_view& s, size_t& chars) noexce
         const auto cs = utf8_prefix_sizes[c];
         if constexpr (validate)
         {
-            if (cs.utf8 < 2 || s.size() < cs.utf8 || !utf8_valid_multibyte_prefix(s[0], s[1]))
+            if (cs.utf8 < 2 || s.size() < cs.utf8
+                || !utf8_valid_multibyte_prefix(static_cast<unsigned char>(s[0]), static_cast<unsigned char>(s[1])))
                 throw utf8_error();
             for (const auto* p = s.data() + 2; p != s.data() + cs.utf8; ++p)
                 if ((*p & 0xc0) != 0x80)

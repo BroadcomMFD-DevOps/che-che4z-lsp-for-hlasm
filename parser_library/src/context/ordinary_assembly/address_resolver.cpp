@@ -43,7 +43,7 @@ address address_resolver::extract_dep_address(const address& addr, size_t bounda
 {
     auto [spaces, _] = addr.normalized_spaces();
     auto enough = std::find_if(spaces.rbegin(), spaces.rend(), [boundary](const auto& e) {
-        return e.first->kind == space_kind::ALIGNMENT && e.first->align.boundary >= boundary
+        return (e.first->kind == space_kind::ALIGNMENT && e.first->align.boundary >= boundary)
             || e.first->kind == space_kind::LOCTR_SET || e.first->kind == space_kind::LOCTR_MAX;
     });
     if (enough != spaces.rend())
@@ -113,7 +113,7 @@ symbol_value aggregate_address_resolver::resolve(dependency_solver&) const
 
 dependency_collector aggregate_address_resolver::get_dependencies(dependency_solver&) const
 {
-    while (last_base_addrs != -1)
+    while (last_base_addrs != (size_t)-1)
     {
         auto addr = address_resolver::extract_dep_address(base_addrs[last_base_addrs], boundary);
         if (addr.has_unresolved_space())

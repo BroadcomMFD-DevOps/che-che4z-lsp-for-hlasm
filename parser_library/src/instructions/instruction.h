@@ -296,7 +296,7 @@ class machine_instruction
         LENGTH_48,
     };
 
-    static consteval char get_length_by_format(mach_format instruction_format) noexcept;
+    static consteval unsigned char get_length_by_format(mach_format instruction_format) noexcept;
 
     inline_string<7> m_name;
 

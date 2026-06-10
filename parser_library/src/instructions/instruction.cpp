@@ -609,16 +609,16 @@ public:
 };
 } // namespace
 
-consteval char machine_instruction::get_length_by_format(mach_format instruction_format) noexcept
+consteval unsigned char machine_instruction::get_length_by_format(mach_format instruction_format) noexcept
 {
     auto interval = static_cast<int>(instruction_format);
     if (interval >= static_cast<int>(mach_format::length_48))
-        return static_cast<char>(size_identifier::LENGTH_48);
+        return static_cast<unsigned char>(size_identifier::LENGTH_48);
     if (interval >= static_cast<int>(mach_format::length_32))
-        return static_cast<char>(size_identifier::LENGTH_32);
+        return static_cast<unsigned char>(size_identifier::LENGTH_32);
     if (interval >= static_cast<int>(mach_format::length_16))
-        return static_cast<char>(size_identifier::LENGTH_16);
-    return static_cast<char>(size_identifier::LENGTH_0);
+        return static_cast<unsigned char>(size_identifier::LENGTH_16);
+    return static_cast<unsigned char>(size_identifier::LENGTH_0);
 }
 
 consteval machine_instruction::machine_instruction(std::string_view name,

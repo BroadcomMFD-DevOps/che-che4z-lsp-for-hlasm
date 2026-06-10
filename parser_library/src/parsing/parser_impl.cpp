@@ -104,9 +104,13 @@ constexpr auto ord_first = utils::create_truth_table(u8"$_#@abcdefghijklmnopqrst
 constexpr auto ord = utils::create_truth_table(u8"$_#@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
 constexpr auto numbers = utils::create_truth_table(u8"0123456789");
 
-[[nodiscard]] constexpr bool char_is_ord_first(char8_t c) noexcept { return c < ord_first.size() && ord_first[c]; }
-[[nodiscard]] constexpr bool char_is_ord(char8_t c) noexcept { return c < ord.size() && ord[c]; }
-[[nodiscard]] constexpr bool char_is_num(char8_t c) noexcept { return c < numbers.size() && numbers[c]; }
+static_assert((char8_t)-1 < ord_first.size());
+static_assert((char8_t)-1 < ord.size());
+static_assert((char8_t)-1 < numbers.size());
+
+[[nodiscard]] constexpr bool char_is_ord_first(char8_t c) noexcept { return ord_first[c]; }
+[[nodiscard]] constexpr bool char_is_ord(char8_t c) noexcept { return ord[c]; }
+[[nodiscard]] constexpr bool char_is_num(char8_t c) noexcept { return numbers[c]; }
 
 namespace {
 std::pair<char_substitution, size_t> append_utf8_with_newlines(
@@ -137,7 +141,7 @@ std::pair<char_substitution, size_t> append_utf8_with_newlines(
         {
             t.push_back(c);
             char32_t v = c & 0b0111'1111u >> cs.utf8;
-            for (int i = 1; i < cs.utf8; ++i)
+            for (unsigned i = 1; i < cs.utf8; ++i)
             {
                 const auto n = static_cast<unsigned char>(s[i]) & 0b0011'1111u;
                 t.push_back(static_cast<char8_t>(0x80u | n));
@@ -3119,7 +3123,7 @@ parser_holder::op_data parser2::lab_instr_rest()
         .op_logical_column = input.char_position_in_line,
     };
 
-    result.op_text->text.reserve((input.last - input.next) + (&holder->newlines.back() - input.nl));
+    result.op_text->text.reserve(utils::to_unsigned((input.last - input.next) + (&holder->newlines.back() - input.nl)));
     while (!eof())
     {
         while (!before_nl())

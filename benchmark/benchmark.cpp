@@ -120,7 +120,7 @@ class bench_configuration
 public:
     std::string ws_folder = utils::path::current_path().string();
     std::string single_file = "";
-    size_t start_range = 0, end_range = 0;
+    unsigned long start_range = 0, end_range = 0;
     bool write_details = true;
     bool do_reparse = true;
     std::string message;
@@ -181,8 +181,8 @@ private:
 
                 try
                 {
-                    start_range = std::stoi(val.substr(0, pos));
-                    end_range = std::stoi(val.substr(pos + 1));
+                    start_range = std::stoul(val.substr(0, pos));
+                    end_range = std::stoul(val.substr(pos + 1));
                 }
                 catch (...)
                 {
@@ -285,9 +285,9 @@ public:
         all_file_stats s;
         if (!bc.single_file.empty())
         {
-            auto end_range = bc.end_range != 0 ? bc.end_range : std::numeric_limits<long long int>::max();
+            auto end_range = bc.end_range != 0 ? bc.end_range : std::numeric_limits<unsigned long>::max();
 
-            for (size_t i = 0; i < end_range; ++i)
+            for (unsigned long i = 0; i < end_range; ++i)
                 std::cout << parse_file(
                     parse_parameters {
                         bc.single_file,
@@ -317,7 +317,7 @@ public:
             std::cout << "{\n\"pgms\" : [" << std::flush;
 
             bool first = true;
-            for (size_t i = bc.start_range; i < bc.end_range && bc.start_range < bc.pgm_names.size(); ++i)
+            for (size_t i = bc.start_range; i < bc.end_range && i < bc.pgm_names.size(); ++i)
             {
                 if (!std::exchange(first, false))
                     std::cout << ",\n";
@@ -383,7 +383,7 @@ private:
     {
         bool success;
         json response;
-        long long time;
+        long long time = 0;
     };
 
     struct parse_parameters
@@ -521,8 +521,8 @@ private:
         const auto& metrics = metadata.metrics;
         auto exec_statements = metrics.open_code_statements + metrics.copy_statements + metrics.macro_statements
             + metrics.lookahead_statements + metrics.reparsed_statements;
-        s.average_stmt_ms += (exec_statements / (double)time);
-        s.average_line_ms += metrics.lines / (double)time;
+        s.average_stmt_ms += ((double)exec_statements / (double)time);
+        s.average_line_ms += (double)metrics.lines / (double)time;
         s.all_files += files_processed;
         s.whole_time += time;
 
