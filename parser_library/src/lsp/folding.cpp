@@ -207,12 +207,14 @@ void folding_between_comments(std::vector<fold_data>& data, std::span<const line
 
 void adjust_folding_data(std::span<fold_data> data)
 {
+    static_assert(std::numeric_limits<decltype(data)::difference_type>::max()
+        <= std::numeric_limits<std::vector<bool>::difference_type>::max());
     std::vector<bool> structured(data.size());
     for (size_t l = 0; l < data.size(); ++l)
     {
         if (auto el = data[l].indentation)
         {
-            std::fill(structured.begin() + l, structured.begin() + el + 1, true);
+            std::fill(structured.begin() + utils::to_signed(l), structured.begin() + utils::to_signed(el + 1), true);
             l = el;
         }
         else if (data[l].small_structure)
@@ -225,8 +227,8 @@ void adjust_folding_data(std::span<fold_data> data)
         if (!d.notcomment)
             continue;
 
-        const auto reach = structured.begin() + d.notcomment + 1;
-        auto s = std::find(structured.begin() + l, reach, true);
+        const auto reach = structured.begin() + utils::to_signed(d.notcomment + 1);
+        const auto s = std::find(structured.begin() + utils::to_signed(l), reach, true);
         if (s == reach)
             continue;
 
