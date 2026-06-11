@@ -122,21 +122,24 @@ std::vector<preprocessor_options> get_preprocessor_options(std::bitset<3> b)
     return opts;
 }
 
-std::string get_content(const uint8_t* data, size_t size, fuzzer_lib_provider& lib)
+std::string get_content(const uint8_t* const data_, const size_t size, fuzzer_lib_provider& lib)
 {
     std::string source;
     std::string* target = &source;
 
-    while (auto next = (const uint8_t*)memchr(data, 0xff, size))
+    const auto data = (const char*)data_;
+    const auto end = data + size;
+
+    auto input = std::span(data, end);
+
+    while (auto next = (const char*)memchr(input.data(), 0xff, input.size()))
     {
-        const auto len = static_cast<std::size_t>(next - data);
-        *target = hlasm_plugin::utils::replace_non_utf8_chars(std::string_view((const char*)data, len));
+        *target = hlasm_plugin::utils::replace_non_utf8_chars(std::string_view(input.data(), next));
 
         target = &lib.files.emplace_back();
-        size -= len + 1;
-        data = next + 1;
+        input = std::span(next + 1, end);
     }
-    *target = hlasm_plugin::utils::replace_non_utf8_chars(std::string_view((const char*)data, size));
+    *target = hlasm_plugin::utils::replace_non_utf8_chars(std::string_view(input.data(), input.size()));
 
     return source;
 }

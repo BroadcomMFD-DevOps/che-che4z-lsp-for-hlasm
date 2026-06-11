@@ -73,8 +73,7 @@ symbol_attributes hlasm_plugin::parser_library::context::symbol_attributes::make
 
 data_attr_kind symbol_attributes::transform_attr(unsigned char c)
 {
-    c = static_cast<unsigned char>(utils::upper_cased[c]);
-    switch (c)
+    switch (utils::upper_cased[c])
     {
         case 'D':
             return data_attr_kind::D;

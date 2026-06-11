@@ -33,6 +33,7 @@
 #include "server_streams.h"
 #include "telemetry_broker.h"
 #include "utils/scope_exit.h"
+#include "utils/intconv.h"
 #include "virtual_file_provider.h"
 #include "workspace_manager.h"
 
@@ -208,7 +209,7 @@ int main(int argc, char** argv)
         return 1;
 
     if (opts->log_level >= 0)
-        logger::instance.level(static_cast<unsigned char>(opts->log_level));
+        logger::instance.level(hlasm_plugin::utils::to_unsigned(opts->log_level));
 
     log_options(*opts);
 

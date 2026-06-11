@@ -317,7 +317,7 @@ public:
             std::cout << "{\n\"pgms\" : [" << std::flush;
 
             bool first = true;
-            for (size_t i = bc.start_range; i < bc.end_range && i < bc.pgm_names.size(); ++i)
+            for (auto i = bc.start_range; i < bc.end_range && i < bc.pgm_names.size(); ++i)
             {
                 if (!std::exchange(first, false))
                     std::cout << ",\n";

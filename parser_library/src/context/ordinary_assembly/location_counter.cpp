@@ -18,6 +18,7 @@
 #include <assert.h>
 
 #include "section.h"
+#include "utils/intconv.h"
 
 using namespace hlasm_plugin::parser_library::context;
 
@@ -270,7 +271,7 @@ std::variant<space_ptr, address> location_counter::restore_from_unresolved_value
         {
             if (switched_data.matches_first_space(sp.get()))
             {
-                auto& last = org_data_.emplace_back(org_data_.begin()[tmp_idx]);
+                auto& last = org_data_.emplace_back(org_data_[utils::to_unsigned(tmp_idx)]);
                 last.kind = switched_data.kind;
                 last.append_data(std::move(switched_data));
                 check_available_value();
