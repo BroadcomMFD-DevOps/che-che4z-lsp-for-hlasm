@@ -168,7 +168,7 @@ context::integer_type data_definition::get_integer_attribute() const noexcept
         return context::integer_type::undefined;
 }
 
-context::symbol_attributes::program_type data_definition::get_program_attribute(
+context::program_type data_definition::get_program_attribute(
     context::dependency_solver& info, diagnostic_op_consumer& diags) const
 {
     if (!program_type)
@@ -176,7 +176,7 @@ context::symbol_attributes::program_type data_definition::get_program_attribute(
     const auto p = program_type->evaluate(info, diags);
     if (p.value_kind() != context::symbol_value_kind::ABS)
         return {};
-    return context::symbol_attributes::program_type((std::uint32_t)p.get_abs());
+    return context::program_type((std::uint32_t)p.get_abs());
 }
 
 context::symbol_attributes data_definition::get_symbol_attributes(

@@ -33,7 +33,7 @@ assembler_type assembler_type_from_string(std::string_view s) noexcept
     const auto it = std::ranges::find(assembler_type_values, s);
     if (it == std::ranges::end(assembler_type_values))
         return {};
-    return (symbol_attributes::assembler_type)std::ranges::distance(std::ranges::begin(assembler_type_values), it);
+    return (assembler_type)std::ranges::distance(std::ranges::begin(assembler_type_values), it);
 }
 
 std::string_view assembler_type_to_string(assembler_type t) noexcept

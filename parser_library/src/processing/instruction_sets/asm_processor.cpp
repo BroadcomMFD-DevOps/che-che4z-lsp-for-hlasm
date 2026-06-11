@@ -265,19 +265,19 @@ void asm_processor::process_EQU(rebuilt_statement&& stmt)
     const auto [value, length, type, prog_type, asm_type] = extract_asm_operands<5>(ops);
 
     // assembler type attribute
-    const symbol_attributes::assembler_type a_attr = assembler_type_from_op(asm_type);
-    if (asm_type && a_attr == symbol_attributes::assembler_type::NONE)
+    const context::assembler_type a_attr = assembler_type_from_op(asm_type);
+    if (asm_type && a_attr == context::assembler_type::NONE)
         add_diagnostic(diagnostic_op::error_A135_EQU_asm_type_val_format(asm_type->operand_range));
 
     // program type attribute
-    symbol_attributes::program_type p_attr {};
+    context::program_type p_attr {};
     if (prog_type)
     {
         const auto p_value = try_get_abs_value(prog_type, dep_solver_override);
         if (!p_value)
             add_diagnostic(diagnostic_op::error_A174_EQU_prog_type_val_format(prog_type->operand_range));
         else
-            p_attr = symbol_attributes::program_type((std::uint32_t)*p_value);
+            p_attr = context::program_type((std::uint32_t)*p_value);
     }
 
     // type attribute operand
@@ -384,7 +384,7 @@ void asm_processor::process_data_instruction(rebuilt_statement&& stmt)
             context::symbol_attributes::type_attr type =
                 ebcdic_encoding::to_ebcdic((unsigned char)data_op->value->get_type_attribute());
 
-            context::symbol_attributes::program_type prog_type {};
+            context::program_type prog_type {};
             if (data_op->value->program_type
                 && !data_op->value->program_type->get_dependencies(dep_solver).contains_dependencies())
             {

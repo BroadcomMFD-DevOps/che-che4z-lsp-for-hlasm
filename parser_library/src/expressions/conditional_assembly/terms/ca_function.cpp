@@ -662,7 +662,7 @@ context::SET_t ca_function::SYSATTRA(const context::C_t& name, const evaluation_
 {
     if (const auto* attrs = find_symbol_attributes(name, eval_ctx))
     {
-        if (const auto a_attr = attrs->asm_type(); a_attr != context::symbol_attributes::assembler_type::NONE)
+        if (const auto a_attr = attrs->asm_type(); a_attr != context::assembler_type::NONE)
         {
             return context::SET_t(std::string(context::assembler_type_to_string(a_attr)));
         }

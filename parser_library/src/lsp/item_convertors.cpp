@@ -183,7 +183,7 @@ std::string hover_text(const context::symbol& sym, const utils::text_convertor* 
 
         markdown.append("  \n");
     }
-    if (const auto a = attrs.asm_type(); a != context::symbol_attributes::assembler_type::NONE)
+    if (const auto a = attrs.asm_type(); a != context::assembler_type::NONE)
     {
         markdown.append("A: ");
         md_appender.append(context::assembler_type_to_string(a));
