@@ -32,8 +32,8 @@
 #include "nlohmann/json.hpp"
 #include "server_streams.h"
 #include "telemetry_broker.h"
-#include "utils/scope_exit.h"
 #include "utils/intconv.h"
+#include "utils/scope_exit.h"
 #include "virtual_file_provider.h"
 #include "workspace_manager.h"
 
