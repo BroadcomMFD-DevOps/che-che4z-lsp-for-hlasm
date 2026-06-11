@@ -61,13 +61,13 @@ public:
         unsigned minute,
         unsigned second,
         unsigned microsecond) noexcept
-        : m_year(year)
-        , m_month(month)
-        , m_day(day)
-        , m_hour(hour)
-        , m_minute(minute)
-        , m_second(second)
-        , m_microsecond(microsecond)
+        : m_year(year & 0b11'1111'1111'1111'1111u)
+        , m_month(month & 0b1111u)
+        , m_day(day & 0b1'1111u)
+        , m_hour(hour & 0b1'1111u)
+        , m_minute(minute & 0b11'1111u)
+        , m_second(second & 0b11'1111u)
+        , m_microsecond(microsecond & 0b1111'1111'1111'1111'1111u)
     {}
     timestamp(unsigned year, unsigned month, unsigned day) noexcept
         : timestamp(year, month, day, 0, 0, 0, 0)
