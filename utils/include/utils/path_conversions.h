@@ -20,14 +20,18 @@
 
 namespace hlasm_plugin::utils::path {
 
+// clang workaround llvm-project#50248
+// nested structs with member initializers cause issues
+struct dissected_uri_view_authority
+{
+    std::optional<std::string_view> user_info = {};
+    std::string_view host;
+    std::optional<std::string_view> port = {};
+};
+
 struct dissected_uri_view
 {
-    struct authority
-    {
-        std::optional<std::string_view> user_info = {};
-        std::string_view host;
-        std::optional<std::string_view> port = {};
-    };
+    using authority = dissected_uri_view_authority;
 
     std::string_view scheme;
     std::optional<authority> auth = {};
