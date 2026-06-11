@@ -301,7 +301,7 @@ std::optional<dissected_uri_view> dissect_uri(std::string_view uri)
         validate_or_reset(result);
         return result;
     }
-    dis_uri.auth.emplace();
+    dis_uri.auth.emplace(std::nullopt); // clang workaround llvm-project#50248
     uri.remove_prefix(2);
 
     if (const auto pstart = uri.find('/'); pstart != std::string_view::npos)
