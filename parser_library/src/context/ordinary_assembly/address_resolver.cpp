@@ -28,7 +28,7 @@ address_resolver::address_resolver(address dependency_address_, size_t boundary)
 
 dependency_collector address_resolver::get_dependencies(dependency_solver&) const
 {
-    return extract_dep_address(dependency_address, boundary);
+    return context::dependency_collector(extract_dep_address(dependency_address, boundary));
 }
 
 symbol_value address_resolver::resolve(dependency_solver&) const
@@ -117,7 +117,7 @@ dependency_collector aggregate_address_resolver::get_dependencies(dependency_sol
     {
         auto addr = address_resolver::extract_dep_address(base_addrs[last_base_addrs], boundary);
         if (addr.has_unresolved_space())
-            return std::move(addr);
+            return context::dependency_collector(std::move(addr));
 
         --last_base_addrs;
     }

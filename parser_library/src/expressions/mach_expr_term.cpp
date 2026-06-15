@@ -72,7 +72,7 @@ context::dependency_collector mach_expr_symbol::get_dependencies(context::depend
     auto symbol = solver.get_symbol(value);
 
     if (symbol == nullptr || symbol->kind() == context::symbol_value_kind::UNDEF)
-        return value;
+        return context::dependency_collector(value);
     else if (symbol->kind() == context::symbol_value_kind::ABS && !qualifier.empty())
     {
         return context::dependency_collector::error();
@@ -86,9 +86,10 @@ context::dependency_collector mach_expr_symbol::get_dependencies(context::depend
                 return context::dependency_collector::error();
             auto bp = std::make_shared<context::address::base_entry>(reloc_value.bases().front());
             bp->qualifier = qualifier;
-            return std::move(reloc_value).with_base_list(context::address::base_list(std::move(bp)));
+            return context::dependency_collector(
+                std::move(reloc_value).with_base_list(context::address::base_list(std::move(bp))));
         }
-        return std::move(reloc_value);
+        return context::dependency_collector(std::move(reloc_value));
     }
     else
         return context::dependency_collector();
@@ -463,9 +464,9 @@ context::dependency_collector mach_expr_literal::get_dependencies(context::depen
         auto symbol = solver.get_symbol(symbol_id);
 
         if (symbol == nullptr || symbol->kind() == context::symbol_value_kind::UNDEF)
-            return symbol_id;
+            return context::dependency_collector(symbol_id);
         else if (symbol->kind() == context::symbol_value_kind::RELOC)
-            return symbol->value().get_reloc();
+            return context::dependency_collector(symbol->value().get_reloc());
         else
             return context::dependency_collector();
     }
