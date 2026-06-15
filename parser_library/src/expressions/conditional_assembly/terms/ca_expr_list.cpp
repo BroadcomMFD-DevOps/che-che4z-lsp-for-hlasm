@@ -200,7 +200,7 @@ struct resolve_stacks
     {
         auto op = std::move(op_stack.top());
         op_stack.pop();
-        if (terms.size() < 1 + op.binary)
+        if (terms.size() < 1u + op.binary)
         {
             diags.add_diagnostic(diagnostic_op::error_CE003(
                 range(terms.size() < static_cast<size_t>(op.binary) ? op.r.start : op.r.end)));

@@ -154,9 +154,9 @@ auto time_sysvars(utils::timestamp now)
         std::string date_val;
         std::string systime;
     } result = {
-        std::format("{:04}{:02}{:02}", now.year(), now.month(), now.day()),
-        std::format("{:02}/{:02}/{:02}", now.month(), now.day(), now.year() % 100),
-        std::format("{:02}.{:02}", now.hour(), now.minute()),
+        std::format("{:04}{:02}{:02}", (unsigned)now.year, (unsigned)now.month, (unsigned)now.day),
+        std::format("{:02}/{:02}/{:02}", (unsigned)now.month, (unsigned)now.day, (unsigned)now.year % 100),
+        std::format("{:02}.{:02}", (unsigned)now.hour, (unsigned)now.minute),
     };
     return result;
 }
@@ -355,7 +355,7 @@ hlasm_context::hlasm_context(
     , m_statements_remaining(asm_options_.statement_count_limit)
     , ord_ctx(*this)
 {
-    scope_stack_.emplace_back().time = utils::timestamp::now().value_or(utils::timestamp(1900, 1, 1));
+    scope_stack_.emplace_back().time = utils::timestamp::now().value_or(utils::timestamp { 1900, 1, 1 });
 
     init_instruction_map(opcode_mnemo_, *ids_, asm_options_.instr_set);
 
@@ -887,7 +887,7 @@ std::pair<const macro_invocation*, bool> hlasm_context::enter_macro(
     auto* const result = invo.get();
 
     auto& new_scope = scope_stack_.emplace_back(std::move(invo));
-    new_scope.time = utils::timestamp::now().value_or(utils::timestamp(1900, 1, 1));
+    new_scope.time = utils::timestamp::now().value_or(utils::timestamp { 1900, 1, 1 });
     new_scope.sysndx = SYSNDX_;
     if (auto sect = ord_ctx.current_section(); sect)
         new_scope.loctr = &sect->current_location_counter();

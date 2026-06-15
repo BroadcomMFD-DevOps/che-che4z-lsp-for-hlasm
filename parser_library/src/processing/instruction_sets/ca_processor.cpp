@@ -557,9 +557,9 @@ void ca_processor::process_AREAD(const processing::resolved_statement& stmt)
     constexpr auto since_midnight = []() -> std::chrono::nanoseconds {
         using namespace std::chrono;
 
-        const auto now = utils::timestamp::now().value_or(utils::timestamp());
+        const auto now = utils::timestamp::now().value_or(utils::timestamp {});
 
-        return hours(now.hour()) + minutes(now.minute()) + seconds(now.second()) + microseconds(now.microsecond());
+        return hours(now.hour) + minutes(now.minute) + seconds(now.second) + microseconds(now.microsecond);
     };
 
     std::string value_to_set;
