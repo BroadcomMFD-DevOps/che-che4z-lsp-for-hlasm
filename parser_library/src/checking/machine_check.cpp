@@ -327,7 +327,7 @@ machine_operand* apply_transforms(machine_operand* out,
                     arg -= op.displacement;
                     break;
                 case complement:
-                    arg = static_cast<int>(1u + ~(unsigned)op.displacement & (1u << arg) - 1u);
+                    arg = static_cast<int>((1u + ~(unsigned)op.displacement) & ((1u << arg) - 1u));
                     break;
             }
             *out++ = {

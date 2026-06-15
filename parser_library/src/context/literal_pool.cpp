@@ -164,7 +164,7 @@ void literal_pool::generate_pool(diagnosable_ctx& diags, index_t<using_collectio
             continue;
 
         auto top_alignment = size | 16u; // 16B length alignment is the top
-        alignment = (~top_alignment & top_alignment - 1) + 1;
+        alignment = (~top_alignment & (top_alignment - 1)) + 1;
     }
 
     std::ranges::stable_sort(m_pending_literals, std::ranges::greater(), &pending_literal::alignment);

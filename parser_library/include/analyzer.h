@@ -123,7 +123,7 @@ class analyzer_options
     void set(collect_highlighting_info hi) { collect_hl_info = hi; }
     void set(file_is_opencode f_oc) { parsing_opencode = f_oc; }
     void set(std::shared_ptr<context::id_storage> ids) { ids_init = std::move(ids); }
-    void set(preprocessor_options pp) { preprocessor_args.emplace_back(std::move(pp)); }
+    void set(preprocessor_options pp) { preprocessor_args.push_back(std::move(pp)); }
     void set(std::vector<preprocessor_options> pp) { preprocessor_args = std::move(pp); }
     void set(virtual_file_monitor* vfm) { vf_monitor = vfm; }
     void set(std::shared_ptr<std::vector<fade_message>> fmc) { fade_messages = fmc; };
