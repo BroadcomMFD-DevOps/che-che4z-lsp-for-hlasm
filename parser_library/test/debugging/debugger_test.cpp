@@ -1376,7 +1376,9 @@ L   DS    F
         auto res = d.evaluate(expr, frame);
 
         if (!exp.empty())
+        {
             EXPECT_EQ(res.result, exp);
+        }
         EXPECT_EQ(res.error, error);
         EXPECT_EQ(!!res.var_ref, structured);
     }

@@ -46,10 +46,10 @@ struct macrodef_start_data
 struct macrodef_prototype
 {
     context::id_index macro_name;
-    range macro_name_range;
+    range macro_name_range = {};
 
-    context::id_index name_param;
-    std::vector<context::macro_arg> symbolic_params;
+    context::id_index name_param = {};
+    std::vector<context::macro_arg> symbolic_params = {};
 };
 
 // result of macrodef_processor

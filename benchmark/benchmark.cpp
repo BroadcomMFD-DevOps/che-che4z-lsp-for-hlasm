@@ -536,7 +536,7 @@ private:
                 { "Wall Time (ms)", time },
                 { "CPU Time (ms/n)", 1000.0 * (double)clock_time / CLOCKS_PER_SEC },
                 { "Executed Statements", exec_statements },
-                { "ExecStatement/ms", exec_statements / (double)time },
+                { "ExecStatement/ms", (double)exec_statements / (double)time },
                 { "Line/ms", (double)metrics.lines / (double)time },
                 { "Top messages", benchmark::get_top_messages(diag_counter.message_counts) },
                 { "Open Code Statements", metrics.open_code_statements },

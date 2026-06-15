@@ -811,7 +811,7 @@ constexpr auto utf8_length_extras = []() {
 
     for (size_t i = 0; i < 0x100; i += 16)
     {
-        unsigned long long bits = 0;
+        std::uint32_t bits = 0;
         if (i <= 0b0111'1111)
             bits = 0;
         else if (0b1100'0000 <= i && i <= 0b1101'1111)
