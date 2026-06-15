@@ -350,8 +350,8 @@ public:
                                   { "Benchmark time(ms)", s.whole_time },
                                   { "Analyzer crashes", s.parsing_crashes },
                                   { "Failed program opens", s.failed_file_opens },
-                                  { "Average statement/ms", s.average_stmt_ms / bc.pgm_names.size() },
-                                  { "Average line/ms", s.average_line_ms / bc.pgm_names.size() } })
+                                  { "Average statement/ms", s.average_stmt_ms / (double)bc.pgm_names.size() },
+                                  { "Average line/ms", s.average_line_ms / (double)bc.pgm_names.size() } })
                              .dump(2);
             std::cout << "}\n";
             log_if("Parse finished\n\n");
@@ -534,10 +534,10 @@ private:
                 { "Errors", diag_counter.error_count },
                 { "Warnings", diag_counter.warning_count },
                 { "Wall Time (ms)", time },
-                { "CPU Time (ms/n)", 1000.0 * clock_time / CLOCKS_PER_SEC },
+                { "CPU Time (ms/n)", 1000.0 * (double)clock_time / CLOCKS_PER_SEC },
                 { "Executed Statements", exec_statements },
                 { "ExecStatement/ms", exec_statements / (double)time },
-                { "Line/ms", metrics.lines / (double)time },
+                { "Line/ms", (double)metrics.lines / (double)time },
                 { "Top messages", benchmark::get_top_messages(diag_counter.message_counts) },
                 { "Open Code Statements", metrics.open_code_statements },
                 { "Copy Statements", metrics.copy_statements },
@@ -581,7 +581,7 @@ private:
             true,
             json({
                 { "Reparse Wall Time (ms)", time },
-                { "Reparse CPU Time (ms/n)", 1000.0 * clock_time / CLOCKS_PER_SEC },
+                { "Reparse CPU Time (ms/n)", 1000.0 * (double)clock_time / CLOCKS_PER_SEC },
                 { "Reparse errors", diag_counter.error_count },
                 { "Reparse warnings", diag_counter.warning_count },
             }),
