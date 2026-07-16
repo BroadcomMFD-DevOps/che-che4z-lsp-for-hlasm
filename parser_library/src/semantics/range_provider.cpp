@@ -80,19 +80,8 @@ size_t range_provider::get_line_limit(size_t relative_line) const noexcept
 
 position range_provider::adjust_position(position pos, bool end) const noexcept
 {
-    auto [r, column] = [this, pos, end]() {
-        for (auto column = pos.column - original_range.start.column; const auto& op_range : original_operand_ranges)
-        {
-            auto range_len = op_range.end.column - op_range.start.column;
-            for (size_t i = op_range.start.line; i < op_range.end.line; ++i)
-                range_len += get_line_limit(i - original_range.start.line) - m_continued_code_line_column;
-
-            if (column < range_len + end)
-                return std::pair(op_range, column);
-            column -= range_len;
-        }
-        return std::pair(original_range, pos.column - original_range.start.column);
-    }();
+    auto r = original_range;
+    auto column = pos.column - original_range.start.column;
 
     auto column_start = r.start.column;
     size_t line_start = r.start.line - original_range.start.line;

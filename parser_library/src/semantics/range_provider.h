@@ -37,7 +37,6 @@ struct range_provider
 {
 public:
     range original_range;
-    std::vector<range> original_operand_ranges;
     std::vector<std::pair<std::pair<size_t, bool>, range>> model_substitutions;
     std::vector<size_t> line_limits;
     adjusting_state state;
