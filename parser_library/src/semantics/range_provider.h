@@ -18,7 +18,6 @@
 #include <utility>
 #include <vector>
 
-#include "lexing/logical_line.h"
 #include "range.h"
 
 namespace hlasm_plugin::parser_library::semantics {

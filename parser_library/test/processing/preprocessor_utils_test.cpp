@@ -20,6 +20,7 @@
 #include "gtest/gtest.h"
 
 #include "../common_testing.h"
+#include "lexing/logical_line.h"
 #include "processing/preprocessors/preprocessor_utils.h"
 #include "semantics/range_provider.h"
 #include "semantics/statement.h"
