@@ -21,29 +21,27 @@ namespace hlasm_plugin::parser_library::semantics {
 
 range range_provider::adjust_range(range r) const noexcept
 {
-    if (state == adjusting_state::MACRO_REPARSE)
+    using enum adjusting_state;
+    switch (state)
     {
-        if (r.start != r.end)
-            return range(adjust_position(r.start, false), adjust_position(r.end, true));
+        default:
+            assert(false);
+            [[fallthrough]];
 
-        auto adjusted = adjust_position(r.end, true);
-        return range(adjusted, adjusted);
-    }
-    else if (state == adjusting_state::SUBSTITUTION)
-        return original_range;
-    else if (state == adjusting_state::NONE)
-        return r;
-    else if (state == adjusting_state::MODEL_REPARSE)
-    {
-        assert(r.start.line == 0 && r.end.line == 0);
-        if (r.start != r.end)
-            return range(adjust_model_position(r.start, false), adjust_model_position(r.end, true));
+        case adjusting_state::NONE:
+            return r;
 
-        auto adjusted = adjust_model_position(r.end, true);
-        return range(adjusted, adjusted);
+        case adjusting_state::SUBSTITUTION:
+            return original_range;
+
+        case adjusting_state::MODEL_REPARSE:
+            assert(r.start.line == 0 && r.end.line == 0);
+            if (r.start != r.end)
+                return range(adjust_model_position(r.start, false), adjust_model_position(r.end, true));
+
+            auto adjusted = adjust_model_position(r.end, true);
+            return range(adjusted, adjusted);
     }
-    assert(false);
-    return r;
 }
 
 position range_provider::adjust_model_position(position pos, bool end) const noexcept
@@ -76,33 +74,6 @@ position range_provider::adjust_model_position(position pos, bool end) const noe
 size_t range_provider::get_line_limit(size_t relative_line) const noexcept
 {
     return relative_line >= line_limits.size() ? 71 : line_limits[relative_line];
-}
-
-position range_provider::adjust_position(position pos, bool end) const noexcept
-{
-    auto r = original_range;
-    auto column = pos.column - original_range.start.column;
-
-    auto column_start = r.start.column;
-    size_t line_start = r.start.line - original_range.start.line;
-
-    while (true)
-    {
-        auto rest = get_line_limit(line_start) - column_start;
-        if (column < rest + end)
-        {
-            column_start += column;
-            break;
-        }
-        else
-        {
-            column -= rest;
-            column_start = m_continued_code_line_column;
-            ++line_start;
-        }
-    }
-    line_start += original_range.start.line;
-    return position(line_start, column_start);
 }
 
 range_provider::range_provider(range original_range, adjusting_state state)

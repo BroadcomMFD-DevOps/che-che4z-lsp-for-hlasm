@@ -27,7 +27,6 @@ enum class adjusting_state
 {
     NONE,
     SUBSTITUTION,
-    MACRO_REPARSE,
     MODEL_REPARSE,
 };
 
@@ -40,7 +39,6 @@ class range_provider
     adjusting_state state;
     size_t m_continued_code_line_column = 15;
 
-    [[nodiscard]] position adjust_position(position pos, bool end) const noexcept;
     [[nodiscard]] position adjust_model_position(position pos, bool end) const noexcept;
 
     [[nodiscard]] size_t get_line_limit(size_t relative_line) const noexcept;

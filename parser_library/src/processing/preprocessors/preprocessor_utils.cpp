@@ -88,13 +88,50 @@ std::pair<std::string_view, size_t> remove_separators(std::string_view s)
 
     return { s, trimmed };
 }
+
 } // namespace
 
+position range_adjuster::adjust_position(position pos, bool end) const noexcept
+{
+    auto r = original_range;
+    auto column = pos.column - original_range.start.column;
+
+    auto column_start = r.start.column;
+    size_t line_start = r.start.line - original_range.start.line;
+
+    while (true)
+    {
+        auto rest = line_limit - column_start;
+        if (column < rest + end)
+        {
+            column_start += column;
+            break;
+        }
+        else
+        {
+            column -= rest;
+            column_start = continuation;
+            ++line_start;
+        }
+    }
+    line_start += original_range.start.line;
+    return position(line_start, column_start);
+}
+
+range range_adjuster::adjust_range(range r) const noexcept
+{
+    if (r.start != r.end)
+        return range(adjust_position(r.start, false), adjust_position(r.end, true));
+
+    auto adjusted = adjust_position(r.end, true);
+    return range(adjusted, adjusted);
+}
+
 std::vector<semantics::preproc_details::name_range> get_operands_list(
-    std::string_view operands, size_t op_column_start, const semantics::range_provider& rp)
+    std::string_view operands, size_t op_column_start, const range_adjuster& rp)
 {
     std::vector<semantics::preproc_details::name_range> operand_list;
-    auto lineno = rp.get_original_range().start.line;
+    auto lineno = rp.original_range.start.line;
 
     while (!operands.empty())
     {
@@ -127,10 +164,10 @@ std::vector<semantics::preproc_details::name_range> get_operands_list(
 namespace {
 template<typename ITERATOR>
 semantics::preproc_details::name_range get_stmt_part_name_range(
-    std::span<const std::pair<ITERATOR, ITERATOR>> matches, size_t index, const semantics::range_provider& rp)
+    std::span<const std::pair<ITERATOR, ITERATOR>> matches, size_t index, const range_adjuster& rp)
 {
     semantics::preproc_details::name_range nr;
-    auto lineno = rp.get_original_range().start.line;
+    auto lineno = rp.original_range.start.line;
     ++index;
     if (index < matches.size() && (index == 0 || matches[index].first != matches[index].second))
     {
@@ -164,7 +201,7 @@ std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(std::span<const std::pa
     semantics::preproc_details details;
 
     details.stmt_r = range({ lineno, 0 }, { lineno, static_cast<size_t>(lengths_(0)) });
-    auto rp = semantics::range_provider(details.stmt_r, semantics::adjusting_state::MACRO_REPARSE, continue_column);
+    const auto rp = range_adjuster(details.stmt_r, continue_column);
 
     if (ids.label)
         details.label = get_stmt_part_name_range<ITERATOR>(matches, *ids.label, rp);
