@@ -122,20 +122,6 @@ range_provider::range_provider(range original_range, adjusting_state state, size
     , m_continued_code_line_column(continued_code_line_column)
 {}
 
-range_provider::range_provider(range original_field_range,
-    std::vector<range> original_operand_ranges_,
-    adjusting_state state,
-    std::vector<size_t> line_limits,
-    size_t continued_code_line_column)
-    : original_range(original_field_range)
-    , original_operand_ranges(std::move(original_operand_ranges_))
-    , line_limits(std::move(line_limits))
-    , state(state)
-    , m_continued_code_line_column(continued_code_line_column)
-{
-    assert(original_operand_ranges.empty() || original_range.start == original_operand_ranges.front().start);
-}
-
 range_provider::range_provider(
     std::vector<std::pair<std::pair<size_t, bool>, range>> ms, std::vector<size_t> line_limits)
     : model_substitutions(std::move(ms))

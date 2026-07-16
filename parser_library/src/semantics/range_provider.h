@@ -44,11 +44,6 @@ public:
     size_t m_continued_code_line_column = 15;
 
     explicit range_provider(range original_field_range, adjusting_state state, size_t continued_code_line_column = 15);
-    explicit range_provider(range original_field_range,
-        std::vector<range> original_operand_ranges,
-        adjusting_state state,
-        std::vector<size_t> line_limits,
-        size_t continued_code_line_column = 15);
     explicit range_provider(
         std::vector<std::pair<std::pair<size_t, bool>, range>> model_substitutions, std::vector<size_t> line_limits);
     explicit range_provider();
