@@ -112,7 +112,7 @@ range_provider::range_provider(range original_range, adjusting_state state, size
 {}
 
 range_provider::range_provider(
-    std::vector<std::pair<std::pair<size_t, bool>, range>> ms, std::vector<size_t> line_limits)
+    std::span<const std::pair<std::pair<size_t, bool>, range>> ms, std::span<const size_t> line_limits)
     : model_substitutions(std::move(ms))
     , line_limits(std::move(line_limits))
     , state(adjusting_state::MODEL_REPARSE)

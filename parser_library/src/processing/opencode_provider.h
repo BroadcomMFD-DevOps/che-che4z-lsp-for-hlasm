@@ -54,7 +54,7 @@ class parser_holder;
 } // namespace hlasm_plugin::parser_library::parsing
 namespace hlasm_plugin::parser_library::semantics {
 class collector;
-struct range_provider;
+class range_provider;
 class source_info_processor;
 } // namespace hlasm_plugin::parser_library::semantics
 namespace hlasm_plugin::parser_library {

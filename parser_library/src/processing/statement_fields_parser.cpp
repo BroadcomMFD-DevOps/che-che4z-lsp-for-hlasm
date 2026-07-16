@@ -38,7 +38,7 @@ statement_fields_parser::parse_result statement_fields_parser::parse_operand_fie
 {
     m_hlasm_ctx->metrics.reparsed_statements++;
 
-    const auto original_range = field_range.original_range;
+    const auto original_range = field_range.get_original_range();
 
     diagnostic_consumer_transform add_diag_subst([&field, &add_diag, after_substitution](diagnostic_op diag) {
         if (after_substitution) // field.text has not newlines

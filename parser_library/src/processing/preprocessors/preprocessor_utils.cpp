@@ -94,7 +94,7 @@ std::vector<semantics::preproc_details::name_range> get_operands_list(
     std::string_view operands, size_t op_column_start, const semantics::range_provider& rp)
 {
     std::vector<semantics::preproc_details::name_range> operand_list;
-    auto lineno = rp.original_range.start.line;
+    auto lineno = rp.get_original_range().start.line;
 
     while (!operands.empty())
     {
@@ -130,7 +130,7 @@ semantics::preproc_details::name_range get_stmt_part_name_range(
     std::span<const std::pair<ITERATOR, ITERATOR>> matches, size_t index, const semantics::range_provider& rp)
 {
     semantics::preproc_details::name_range nr;
-    auto lineno = rp.original_range.start.line;
+    auto lineno = rp.get_original_range().start.line;
     ++index;
     if (index < matches.size() && (index == 0 || matches[index].first != matches[index].second))
     {

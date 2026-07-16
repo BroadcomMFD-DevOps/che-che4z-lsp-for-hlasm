@@ -15,8 +15,8 @@
 #ifndef SEMANTICS_RANGE_PROVIDER_H
 #define SEMANTICS_RANGE_PROVIDER_H
 
+#include <span>
 #include <utility>
-#include <vector>
 
 #include "range.h"
 
@@ -31,28 +31,28 @@ enum class adjusting_state
     MODEL_REPARSE,
 };
 
-// structure for computing range
-struct range_provider
+// class for computing range
+class range_provider
 {
-public:
     range original_range;
-    std::vector<std::pair<std::pair<size_t, bool>, range>> model_substitutions;
-    std::vector<size_t> line_limits;
+    std::span<const std::pair<std::pair<size_t, bool>, range>> model_substitutions;
+    std::span<const size_t> line_limits;
     adjusting_state state;
     size_t m_continued_code_line_column = 15;
 
-    explicit range_provider(range original_field_range, adjusting_state state, size_t continued_code_line_column = 15);
-    explicit range_provider(
-        std::vector<std::pair<std::pair<size_t, bool>, range>> model_substitutions, std::vector<size_t> line_limits);
-    explicit range_provider();
-
-    [[nodiscard]] range adjust_range(range r) const noexcept;
-
-private:
     [[nodiscard]] position adjust_position(position pos, bool end) const noexcept;
     [[nodiscard]] position adjust_model_position(position pos, bool end) const noexcept;
 
     [[nodiscard]] size_t get_line_limit(size_t relative_line) const noexcept;
+
+public:
+    explicit range_provider(range original_field_range, adjusting_state state, size_t continued_code_line_column = 15);
+    explicit range_provider(std::span<const std::pair<std::pair<size_t, bool>, range>> model_substitutions,
+        std::span<const size_t> line_limits);
+    explicit range_provider();
+
+    [[nodiscard]] range adjust_range(range r) const noexcept;
+    [[nodiscard]] const range& get_original_range() const noexcept { return original_range; }
 };
 
 template<typename It>
