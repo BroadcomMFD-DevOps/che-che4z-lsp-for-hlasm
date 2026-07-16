@@ -46,7 +46,8 @@ class range_provider
     [[nodiscard]] size_t get_line_limit(size_t relative_line) const noexcept;
 
 public:
-    explicit range_provider(range original_field_range, adjusting_state state, size_t continued_code_line_column = 15);
+    explicit range_provider(range original_field_range, adjusting_state state);
+    explicit range_provider(range original_field_range, adjusting_state state, size_t continued_code_line_column);
     explicit range_provider(std::span<const std::pair<std::pair<size_t, bool>, range>> model_substitutions,
         std::span<const size_t> line_limits);
     explicit range_provider();

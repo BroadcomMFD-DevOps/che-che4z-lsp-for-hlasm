@@ -105,6 +105,12 @@ position range_provider::adjust_position(position pos, bool end) const noexcept
     return position(line_start, column_start);
 }
 
+range_provider::range_provider(range original_range, adjusting_state state)
+    : original_range(original_range)
+    , state(state)
+    , m_continued_code_line_column(15)
+{}
+
 range_provider::range_provider(range original_range, adjusting_state state, size_t continued_code_line_column)
     : original_range(original_range)
     , state(state)
