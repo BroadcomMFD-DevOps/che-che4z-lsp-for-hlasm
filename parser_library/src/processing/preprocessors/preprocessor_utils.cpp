@@ -88,7 +88,6 @@ std::pair<std::string_view, size_t> remove_separators(std::string_view s)
 
     return { s, trimmed };
 }
-
 } // namespace
 
 position range_adjuster::adjust_position(position pos, bool end) const noexcept
