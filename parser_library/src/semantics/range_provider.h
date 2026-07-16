@@ -40,8 +40,6 @@ class range_provider
 
     [[nodiscard]] position adjust_model_position(position pos, bool end) const noexcept;
 
-    [[nodiscard]] size_t get_line_limit(size_t relative_line) const noexcept;
-
 public:
     explicit range_provider(range original_field_range, adjusting_state state);
     explicit range_provider(std::span<const std::pair<std::pair<size_t, bool>, range>> model_substitutions,

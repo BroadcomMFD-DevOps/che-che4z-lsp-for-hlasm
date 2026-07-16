@@ -57,9 +57,9 @@ position range_provider::adjust_model_position(position pos, bool end) const noe
 
     pos.column -= column;
     pos.column += r.start.column;
-    while (true)
+    while (pos.line < line_limits.size())
     {
-        const size_t line_limit = get_line_limit(pos.line);
+        const size_t line_limit = line_limits[pos.line];
         if (pos.column < line_limit + end)
             break;
         pos.column -= line_limit - continued_code_line_column;
@@ -67,15 +67,12 @@ position range_provider::adjust_model_position(position pos, bool end) const noe
     }
     pos.line += r.start.line;
 
+    assert(pos.column < 72u + end);
+
     if (auto cmp = pos <=> r.end; cmp > 0 || (end == false && cmp >= 0))
         pos = r.end;
 
     return pos;
-}
-
-size_t range_provider::get_line_limit(size_t relative_line) const noexcept
-{
-    return relative_line >= line_limits.size() ? 71 : line_limits[relative_line];
 }
 
 range_provider::range_provider(range original_range, adjusting_state state)
