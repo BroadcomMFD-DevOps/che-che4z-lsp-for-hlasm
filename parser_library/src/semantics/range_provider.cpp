@@ -46,6 +46,8 @@ range range_provider::adjust_range(range r) const noexcept
 
 position range_provider::adjust_model_position(position pos, bool end) const noexcept
 {
+    static constexpr size_t continued_code_line_column = 15;
+
     const auto& [d, r] = *std::prev(std::find_if(std::next(model_substitutions.begin()),
         model_substitutions.end(),
         [pos, end](const auto& s) { return pos.column < s.first.first + end; }));
@@ -60,7 +62,7 @@ position range_provider::adjust_model_position(position pos, bool end) const noe
         const size_t line_limit = get_line_limit(pos.line);
         if (pos.column < line_limit + end)
             break;
-        pos.column -= line_limit - m_continued_code_line_column;
+        pos.column -= line_limit - continued_code_line_column;
         ++pos.line;
     }
     pos.line += r.start.line;

@@ -37,7 +37,6 @@ class range_provider
     std::span<const std::pair<std::pair<size_t, bool>, range>> model_substitutions;
     std::span<const size_t> line_limits;
     adjusting_state state;
-    size_t m_continued_code_line_column = 15;
 
     [[nodiscard]] position adjust_model_position(position pos, bool end) const noexcept;
 
