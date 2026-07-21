@@ -14,6 +14,7 @@
 
 #include "range_provider.h"
 
+#include <algorithm>
 #include <cassert>
 
 using namespace hlasm_plugin::parser_library;
