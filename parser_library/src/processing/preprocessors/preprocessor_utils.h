@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include "semantics/range_provider.h"
 #include "semantics/statement.h"
 
 namespace hlasm_plugin::parser_library::processing {

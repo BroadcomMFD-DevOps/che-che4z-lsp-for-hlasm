@@ -33,12 +33,12 @@
 #include "diagnostic_consumer.h"
 #include "document.h"
 #include "lexing/logical_line.h"
+#include "lexing/text_range.h"
 #include "parse_lib_provider.h"
 #include "preprocessor_options.h"
 #include "preprocessor_utils.h"
 #include "processing/preprocessor.h"
 #include "range.h"
-#include "semantics/range_provider.h"
 #include "semantics/source_info_processor.h"
 #include "semantics/statement.h"
 #include "utils/concat.h"
@@ -204,8 +204,7 @@ public:
             if (state != consuming_state::CONSUMING)
                 return false;
 
-            arguments.emplace_back(semantics::preproc_details::name_range {
-                std::string(start, end), semantics::text_range(start, end, lineno) });
+            arguments.emplace_back(std::string(start, end), text_range(start, end, lineno));
             return true;
         };
 
@@ -536,7 +535,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
         }
 
         if (!nr.name.empty())
-            nr.r = semantics::text_range(inc_it_s, inc_it_e, lineno);
+            nr.r = text_range(inc_it_s, inc_it_e, lineno);
 
         return nr;
     }
@@ -1119,7 +1118,7 @@ class db2_preprocessor final : public preprocessor // TODO Take DBCS into accoun
             {
                 auto stmt = std::make_shared<semantics::preprocessor_statement_si>(
                     semantics::preproc_details {
-                        semantics::text_range(ll.m_orig_ll.begin(), ll.m_orig_ll.end(), ll.m_lineno),
+                        text_range(ll.m_orig_ll.begin(), ll.m_orig_ll.end(), ll.m_lineno),
                         std::move(label_nr),
                         { std::move(instruction_nr) },
                         {},
