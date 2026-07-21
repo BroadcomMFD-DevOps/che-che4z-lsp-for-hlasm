@@ -81,8 +81,8 @@ range_provider::range_provider(range original_range, adjusting_state state)
 
 range_provider::range_provider(
     std::span<const std::pair<std::pair<size_t, bool>, range>> ms, std::span<const size_t> line_limits)
-    : model_substitutions(std::move(ms))
-    , line_limits(std::move(line_limits))
+    : model_substitutions(ms)
+    , line_limits(line_limits)
     , state(adjusting_state::MODEL_REPARSE)
 {
     assert(!model_substitutions.empty());

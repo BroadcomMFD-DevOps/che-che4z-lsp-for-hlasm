@@ -200,7 +200,7 @@ std::shared_ptr<PREPROC_STATEMENT> get_preproc_statement(std::span<const std::pa
     semantics::preproc_details details;
 
     details.stmt_r = range({ lineno, 0 }, { lineno, static_cast<size_t>(lengths_(0)) });
-    const auto rp = range_adjuster(details.stmt_r, continue_column);
+    const range_adjuster rp { details.stmt_r, continue_column };
 
     if (ids.label)
         details.label = get_stmt_part_name_range<ITERATOR>(matches, *ids.label, rp);
