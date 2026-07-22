@@ -212,7 +212,7 @@ std::pair<std::string_view, size_t> skip_chars(std::string_view s, size_t count)
     return std::pair(s_.substr(s_.size() - s.size()), utf16_skipped);
 }
 
-const char* skip_chars_utf16(const char* p, size_t count)
+std::string_view skip_chars_utf16(std::string_view s, size_t count)
 {
     static constexpr auto lengths = []() {
         unsigned long v = 0;
@@ -231,14 +231,17 @@ const char* skip_chars_utf16(const char* p, size_t count)
 
         return v;
     }();
-    for (size_t i = 0; i < count && (assert(*p), *p);)
+    auto p = s.begin();
+    const auto e = s.end();
+    while (count && p != e)
     {
         const auto c = static_cast<unsigned char>(*p++);
-        i += lengths >> (c >> 4 << 1) & 3;
+        count -= lengths >> (c >> 4 << 1) & 3;
     }
-    while ((*p & 0xC0) == 0x80)
+    assert(count == 0);
+    while (p != e && (*p & 0xC0) == 0x80)
         ++p;
-    return p;
+    return { p, e };
 }
 
 template<bool validate>

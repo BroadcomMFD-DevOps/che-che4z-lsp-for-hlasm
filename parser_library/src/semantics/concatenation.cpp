@@ -54,11 +54,11 @@ struct concatenation_point_evaluator
 
     void fill_continued_ranges(const char_str_conc& v) requires(collect_ranges)
     {
-        auto p = v.value.data();
+        auto p = std::string_view(v.value);
         auto l = v.conc_range.start.line - initial_line;
         const auto le = v.conc_range.end.line - initial_line;
         auto c = v.conc_range.start.column;
-        while (*p && l < le)
+        while (!p.empty() && l < le)
         {
             const auto limit = line_limits[l];
             auto fits = limit - c;
@@ -148,22 +148,13 @@ concatenation_point::evaluate_with_range_map(const concat_chain& chain,
     std::span<const size_t> line_limits,
     const expressions::evaluation_context& eval_ctx)
 {
-    return evaluate_with_range_map(chain.begin(), chain.end(), initial_line, line_limits, eval_ctx);
-}
-std::pair<std::string, std::vector<std::pair<std::pair<size_t, bool>, range>>>
-concatenation_point::evaluate_with_range_map(concat_chain::const_iterator begin,
-    concat_chain::const_iterator end,
-    const size_t initial_line,
-    std::span<const size_t> line_limits,
-    const expressions::evaluation_context& eval_ctx)
-{
     std::string ret;
     concatenation_point_evaluator<true> evaluator { ret, eval_ctx, initial_line, line_limits };
     // the size estimate is not exact here
-    evaluator.ranges.reserve(utils::to_unsigned(std::ranges::distance(begin, end)) + line_limits.size());
+    evaluator.ranges.reserve(chain.size() + line_limits.size());
 
-    for (auto it = begin; it != end; ++it)
-        std::visit(evaluator, it->value);
+    for (const auto& [value] : chain)
+        std::visit(evaluator, value);
 
     return { std::move(ret), std::move(evaluator.ranges) };
 }
