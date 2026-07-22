@@ -58,6 +58,8 @@ position range_provider::adjust_model_position(position pos, bool end) const noe
 
     pos.column -= column;
     pos.column += r.start.column;
+    // TODO: This should be handled by per-line line mapping
+    pos.line = r.start.line - model_substitutions.front().second.start.line;
     while (pos.line < line_limits.size())
     {
         const size_t line_limit = line_limits[pos.line];
