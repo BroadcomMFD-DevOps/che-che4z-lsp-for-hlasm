@@ -3965,6 +3965,7 @@ result_t<std::optional<semantics::op_rem>> parser2::try_model_ops(parser_positio
         {
             case u8' ':
                 operand_end.emplace(cur_pos());
+                ccb.push_last_text();
                 lex_last_remark();
                 [[fallthrough]];
 
