@@ -47,8 +47,6 @@ range range_provider::adjust_range(range r) const noexcept
 
 position range_provider::adjust_model_position(position pos, bool end) const noexcept
 {
-    static constexpr size_t continued_code_line_column = 15;
-
     const auto& [d, r] = *std::prev(std::find_if(std::next(model_substitutions.begin()),
         model_substitutions.end(),
         [pos, end](const auto& s) { return pos.column < s.first.first + end; }));
@@ -58,16 +56,6 @@ position range_provider::adjust_model_position(position pos, bool end) const noe
 
     pos.column -= column;
     pos.column += r.start.column;
-    // TODO: This should be handled by per-line line mapping
-    pos.line = r.start.line - model_substitutions.front().second.start.line;
-    while (pos.line < line_limits.size())
-    {
-        const size_t line_limit = line_limits[pos.line];
-        if (pos.column < line_limit + end)
-            break;
-        pos.column -= line_limit - continued_code_line_column;
-        ++pos.line;
-    }
     pos.line += r.start.line;
 
     if (auto cmp = pos <=> r.end; cmp > 0 || (end == false && cmp >= 0))
@@ -81,10 +69,8 @@ range_provider::range_provider(range original_range, adjusting_state state)
     , state(state)
 {}
 
-range_provider::range_provider(
-    std::span<const std::pair<std::pair<size_t, bool>, range>> ms, std::span<const size_t> line_limits)
+range_provider::range_provider(std::span<const std::pair<std::pair<size_t, bool>, range>> ms)
     : model_substitutions(ms)
-    , line_limits(line_limits)
     , state(adjusting_state::MODEL_REPARSE)
 {
     assert(!model_substitutions.empty());

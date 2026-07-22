@@ -35,15 +35,13 @@ class range_provider
 {
     range original_range;
     std::span<const std::pair<std::pair<size_t, bool>, range>> model_substitutions;
-    std::span<const size_t> line_limits;
     adjusting_state state;
 
     [[nodiscard]] position adjust_model_position(position pos, bool end) const noexcept;
 
 public:
     explicit range_provider(range original_field_range, adjusting_state state);
-    explicit range_provider(std::span<const std::pair<std::pair<size_t, bool>, range>> model_substitutions,
-        std::span<const size_t> line_limits);
+    explicit range_provider(std::span<const std::pair<std::pair<size_t, bool>, range>> model_substitutions);
     explicit range_provider();
 
     [[nodiscard]] range adjust_range(range r) const noexcept;
