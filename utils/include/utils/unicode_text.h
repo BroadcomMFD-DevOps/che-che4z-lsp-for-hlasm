@@ -77,6 +77,8 @@ std::string replace_non_utf8_chars(std::string_view text);
 // returns the remaining string and size of the skipped length in utf-16 encoding
 std::pair<std::string_view, size_t> skip_chars(std::string_view s, size_t count);
 
+const char* skip_chars_utf16(const char* p, size_t count);
+
 struct utf8_substr_result
 {
     std::string_view str;
