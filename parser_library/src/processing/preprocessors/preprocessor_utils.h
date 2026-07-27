@@ -23,10 +23,19 @@
 #include <utility>
 #include <vector>
 
-#include "semantics/range_provider.h"
 #include "semantics/statement.h"
 
 namespace hlasm_plugin::parser_library::processing {
+
+struct range_adjuster
+{
+    range original_range;
+    size_t continuation;
+    size_t line_limit = 71;
+
+    position adjust_position(position pos, bool end) const noexcept;
+    range adjust_range(range r) const noexcept;
+};
 
 struct stmt_part_ids
 {
@@ -39,7 +48,7 @@ struct stmt_part_ids
 // This function returns a list of operands with their ranges while expecting to receive a string_view of a single line
 // where operands are separated by spaces or commas
 std::vector<semantics::preproc_details::name_range> get_operands_list(
-    std::string_view operands, size_t op_column_start, const semantics::range_provider& rp);
+    std::string_view operands, size_t op_column_start, const range_adjuster& rp);
 
 template<size_t n>
 auto make_preproc_matches(auto&& m)

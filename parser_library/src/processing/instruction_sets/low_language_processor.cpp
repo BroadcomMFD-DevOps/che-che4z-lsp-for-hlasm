@@ -136,10 +136,11 @@ low_language_processor::preprocessed_part low_language_processor::preprocess_inn
     {
         assert(operands_ref.value.size() == 1);
         const auto* model = operands_ref.value[0]->access_model();
-        auto [field, map] = concatenation_point::evaluate_with_range_map(model->chain, eval_ctx);
+        auto [field, map] = concatenation_point::evaluate_with_range_map(
+            model->chain, model->operand_range.start.line, model->line_limits, eval_ctx);
         auto [operands, _, literals] = parser.parse_operand_field(lexing::u8string_view_with_newlines(field),
             true,
-            range_provider(std::move(map), model->line_limits),
+            range_provider(map),
             0,
             processing_status(stmt.format_ref(), stmt.opcode_ref()),
             diag_ctx);

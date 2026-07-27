@@ -14,6 +14,8 @@
 
 #include "members_statement_provider.h"
 
+#include <stdexcept>
+
 #include "library_info_transitional.h"
 
 namespace hlasm_plugin::parser_library::processing {

@@ -14,6 +14,7 @@ target_sources(parser_library PRIVATE
     logical_line.cpp
     logical_line.h
     string_with_newlines.h
+    text_range.h
     tools.cpp
     tools.h
 )

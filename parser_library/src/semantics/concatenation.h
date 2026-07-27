@@ -156,10 +156,9 @@ struct concatenation_point
         concat_chain::const_iterator end,
         const expressions::evaluation_context& eval_ctx);
     static std::pair<std::string, std::vector<std::pair<std::pair<size_t, bool>, range>>> evaluate_with_range_map(
-        const concat_chain& chain, const expressions::evaluation_context& eval_ctx);
-    static std::pair<std::string, std::vector<std::pair<std::pair<size_t, bool>, range>>> evaluate_with_range_map(
-        concat_chain::const_iterator begin,
-        concat_chain::const_iterator end,
+        const concat_chain& chain,
+        const size_t initial_line,
+        std::span<const size_t> line_limits,
         const expressions::evaluation_context& eval_ctx);
 
     void resolve(diagnostic_op_consumer& diag) const;

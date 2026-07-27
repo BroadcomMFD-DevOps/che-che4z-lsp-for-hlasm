@@ -17,11 +17,10 @@
 #include "gtest/gtest.h"
 
 #include "lexing/logical_line.h"
+#include "lexing/text_range.h"
 #include "range.h"
-#include "semantics/range_provider.h"
 
 using namespace hlasm_plugin::parser_library;
-using namespace hlasm_plugin::parser_library::semantics;
 
 TEST(text_range_test, empty_line)
 {

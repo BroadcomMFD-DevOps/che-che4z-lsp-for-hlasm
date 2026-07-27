@@ -3957,32 +3957,22 @@ result_t<std::optional<semantics::op_rem>> parser2::try_model_ops(parser_positio
         in_string.reset();
     }
 
-    std::optional<parser_position> operand_end;
+    parser_position operand_end;
     while (true)
     {
         const bool last_char_special = std::exchange(next_char_special, true);
         switch (*input.next)
         {
             case u8' ':
-                operand_end.emplace(cur_pos());
-                lex_last_remark();
-                [[fallthrough]];
-
-            case EOF_SYMBOL: {
-                if (!operand_end)
-                    operand_end.emplace(cur_pos());
-                semantics::op_rem result {
-                    .operands = {},
-                    .remarks = std::move(remarks),
-                    .line_range = range_from(line_start),
-                };
+                operand_end = cur_pos();
                 ccb.push_last_text();
-                semantics::concatenation_point::clear_concat_chain(cc);
-                resolve_concat_chain(cc);
-                result.operands.emplace_back(std::make_unique<semantics::model_operand>(
-                    std::move(cc), holder->line_limits, remap_range(start, *operand_end)));
-                return result;
-            }
+                lex_last_remark();
+                goto end;
+
+            case EOF_SYMBOL:
+                operand_end = cur_pos();
+                ccb.push_last_text();
+                goto end;
 
             case u8'&':
                 if (input.next[1] == u8'&')
@@ -4044,6 +4034,17 @@ result_t<std::optional<semantics::op_rem>> parser2::try_model_ops(parser_positio
                 break;
         }
     }
+end:;
+    semantics::op_rem result {
+        .operands = {},
+        .remarks = std::move(remarks),
+        .line_range = range_from(line_start),
+    };
+    semantics::concatenation_point::clear_concat_chain(cc);
+    resolve_concat_chain(cc);
+    result.operands.emplace_back(std::make_unique<semantics::model_operand>(
+        std::move(cc), holder->line_limits, remap_range(start, operand_end)));
+    return result;
 }
 
 result_t<semantics::operand_ptr> parser2::mach_op()
