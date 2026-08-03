@@ -1,18 +1,11 @@
 -- Sample Neovim LSP configuration
-local client_id = vim.lsp.start({
+vim.lsp.config('hlasm', {
     name = 'hlasm-language-server',
     cmd = { 'hlasm_language_server' }, -- path to the hlasm_language_server executable
     filetypes = { 'hlasm' },
-    autostart = true,
     root_dir = vim.fs.dirname(vim.fs.find({'.hlasmplugin'}, {upward = true})[1]),
 })
-
-vim.api.nvim_create_autocmd({'FileType'}, {
-    pattern = 'hlasm',
-    callback = function(p)
-        vim.lsp.buf_attach_client(p.buf, client_id)
-    end
-})
+vim.lsp.enable('hlasm')
 
 -- Define hlasm FileType to Neovim
 vim.filetype.add({
@@ -47,4 +40,34 @@ vim.filetype.add({
             end
         },
     },
+})
+
+-- Define hlasm virtual files buffer read command
+local hlasm_group = vim.api.nvim_create_augroup("hlasm", {})
+vim.api.nvim_create_autocmd('BufReadCmd', {
+    group = hlasm_group,
+    pattern = "hlasm://*",
+    callback = function (args)
+        local client = vim.lsp.get_clients({ name = "hlasm" })[1]
+        if client == nil then
+            return
+        end
+
+        local buf = args.buf
+
+        vim.bo[buf].swapfile = false
+        vim.bo[buf].buftype = 'nofile'
+
+        local id = args.match:match("^%w+://([^/?#]+)")
+
+        local resp = client:request_sync('get_virtual_file_content', { id = tonumber(id) })
+        if resp == nil or resp.err ~= nil then
+            return
+        end
+
+        local source_lines = vim.fn.split(resp.result.content, [[\r\?\n]])
+
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, source_lines)
+        vim.bo[buf].modifiable = false
+    end,
 })
