@@ -550,13 +550,11 @@ export function replaceVariables(obj: any, resolver: (configKey: string) => (str
             obj[x] = replaceVariables(obj[x], resolver, worksapceUri);
     }
     else if (typeof obj === 'string') {
-        while (true) {
-            const match = /\$\{config:([^}]+)\}|\$\{(workspaceFolder)\}/.exec(obj);
-            if (!match) break;
-
-            const replacement = match[1] ? '' + resolver(match[1]) : worksapceUri;
-            obj = obj.slice(0, match.index) + replacement + obj.slice(match.index + match[0].length);
-        }
+        obj = obj.split(/(\$\{config:[^}]+\}|\$\{workspaceFolder\})/).map(s => {
+            const match = /\$\{config:([^}]+)\}|\$\{(workspaceFolder)\}/.exec(s);
+            if (!match) return s;
+            return match[1] ? '' + resolver(match[1]) : worksapceUri;
+        }).join('');
     }
     return obj;
 }
