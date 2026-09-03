@@ -1267,7 +1267,7 @@ utils::value_task<utils::resource::resource_location> workspace_configuration::l
                 co_await update_external_configuration(rl, std::move(std::get<std::string>(json_data)));
                 co_return empty_alternative_cfg_root;
             }
-            catch (const nlohmann::json&)
+            catch (const nlohmann::json::exception&)
             {
                 // incompatible json in the response
                 json_data = -1;
