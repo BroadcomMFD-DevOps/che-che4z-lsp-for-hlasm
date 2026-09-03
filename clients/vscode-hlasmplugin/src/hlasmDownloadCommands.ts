@@ -724,8 +724,16 @@ export async function downloadDependencies(context: vscode.ExtensionContext, tel
 
         const dirsWithFiles = await checkForExistingFiles(thingsToDownload);
         if (dirsWithFiles.size > 0) {
-            const overwrite = "Overwrite";
-            const whatToDo = await vscode.window.showQuickPick([overwrite, "Cancel"], { title: "Some of the directories (" + dirsWithFiles.size + ") exist and are not empty." });
+            const overwrite = {
+                label: "Overwrite",
+                detail: [`The following directories (${dirsWithFiles.size}) will be deleted:`, ...dirsWithFiles].join('\n'),
+            };
+            const whatToDo = await vscode.window.showQuickPick(
+                [
+                    overwrite,
+                    { label: "Cancel", },
+                ],
+                { title: "Some of the directories (" + dirsWithFiles.size + ") exist and are not empty." });
             if (whatToDo !== overwrite)
                 return;
 
