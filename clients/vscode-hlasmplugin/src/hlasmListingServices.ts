@@ -42,8 +42,8 @@ type RegexSet = {
 };
 
 const withoutPrefix = {
-    objShortCode: /^(?:([0-9ABCDEF]{6})| {6}) (.{26})( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
-    objLongCode: /^(?:([0-9ABCDEF]{8})| {8}) (.{32})( *\d+)\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
+    objShortCode: /^(?:([0-9ABCDEF]{6})| {6}) (.{26})( *\d{1,7})\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
+    objLongCode: /^(?:([0-9ABCDEF]{8})| {8}) (.{32})( *\d{1,7})\D(?:([a-zA-Z$#@_][a-zA-Z$#@0-9_]*) )?/,
     lineText: /^(?:(Return Code )|\*\* (ASMA\d\d\d[NIWES] .+)|((?:  |[CDR]-)Loc  Object Code    Addr1 Addr2  Stmt |(?:  |[CDR]-)Loc    Object Code      Addr1    Addr2    Stmt )|(.{111})Page +\d+)/,
     pageBoundary: /^.+(?:(High Level Assembler Option Summary)|(External Symbol Dictionary)|(Relocation Dictionary)|(Ordinary Symbol and Literal Cross Reference)|(Macro and Copy Code Source Summary)|(Dsect Cross Reference)|(Using Map)|(General Purpose Register Cross Reference)|(Diagnostic Cross Reference and Assembler Summary))/,
 
