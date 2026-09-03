@@ -165,7 +165,7 @@ class workspace_manager_impl final : public workspace_manager,
             if (ows.logically_deleted)
                 continue;
             size_t match = prefix_match(normalized_uri.get_uri(), ws_uri.get_uri());
-            if (match > max && match >= ws_uri.get_uri().size())
+            if (match > max && match >= ws_uri.get_uri().size() && normalized_uri.is_prefix_of(ws_uri))
             {
                 max = match;
                 max_ows = &ows;
