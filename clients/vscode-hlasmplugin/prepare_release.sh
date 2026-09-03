@@ -6,7 +6,7 @@ RELEASE_NOTES=$3
 OLD_VERSION=$4
 DATE=$5
 
-{ printf "%s" "$RELEASE_NOTES"; cat ../../CHANGELOG.md; } > tmp.md
+{ printf "%s" "$RELEASE_NOTES" | base64 -d; cat ../../CHANGELOG.md; } > tmp.md
 mv tmp.md ../../CHANGELOG.md
 
 case "$VERSION" in
