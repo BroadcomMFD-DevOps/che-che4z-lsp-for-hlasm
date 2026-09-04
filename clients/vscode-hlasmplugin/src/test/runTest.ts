@@ -23,13 +23,28 @@ async function main() {
         // prepare development and tests paths
         const extensionDevelopmentPath = path.join(__dirname, '../../../');
         const extensionTestsPath = path.join(__dirname, './suite/index');
+        const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-'))
         const launchArgs = [
             path.join(__dirname, '../workspace/'),
             '--disable-extensions',
             '--disable-workspace-trust',
             '--user-data-dir',
-            fs.mkdtempSync(path.join(os.tmpdir(), 'test-'))
+            userDataDir,
         ];
+        const userDir = path.join(userDataDir, 'User');
+        fs.mkdirSync(userDir);
+        fs.writeFileSync(path.join(userDir, 'settings.json'), JSON.stringify({
+            "workbench.enableExperiments": false,
+            "telemetry.telemetryLevel": "off",
+            "chat.disableAIFeatures": true,
+            "workbench.settings.enableNaturalLanguageSearch": false,
+            "workbench.tips.enabled": false,
+            "workbench.startupEditor": "none",
+            "chat.extensionUnification.enabled": false,
+            "update.mode": "none",
+            "extensions.autoUpdate": "off",
+            "extensions.autoCheckUpdates": false,
+        }));
         const vscodeExecutablePath = process.argv.length > 2 && process.argv[2] == 'insiders' && await downloadAndUnzipVSCode('insiders') || undefined;
 
         // run tests

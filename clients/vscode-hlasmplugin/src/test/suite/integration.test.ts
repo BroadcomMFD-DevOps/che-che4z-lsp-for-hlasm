@@ -30,6 +30,8 @@ suite('Integration Test Suite', () => {
     });
 
     suiteTeardown(async function() {
+        this.timeout(30000);
+
         await helper.closeAllEditors();
     });
 
