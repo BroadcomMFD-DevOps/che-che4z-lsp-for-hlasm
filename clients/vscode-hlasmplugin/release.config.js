@@ -85,7 +85,7 @@ function getNextReleasePlugin() {
     return [
         '@semantic-release/exec',
         {
-            generateNotesCmd: `sh prepare_release.sh \${nextRelease.version} \${branch.name} "\${nextRelease.notes.replaceAll('"','\\"')}" \${lastRelease.version} \${Date.now()}`
+            generateNotesCmd: `sh prepare_release.sh '\${nextRelease.version}' '\${branch.name.replace(/[^a-z0-9]/gi, '_')}' '\${btoa(nextRelease.notes)}' '\${lastRelease.version}' '\${Date.now()}'`
         }
     ];
 }
